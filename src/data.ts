@@ -1110,6 +1110,476 @@ Improving reading comprehension and logical structuring of academic scripts at t
 - **Compound Sentence:** ሁለት ራሳቸውን የቻሉ አረፍተ ነገሮችን በ "FANBOYS" ማገናኘት።
 - **Complex Sentence:** አንድ ራሱን የቻለ እና አንድ ጥገኛ አረፍተ ነገርን ማገናኘት።`,
     keyFormulas: ["skimming vs scanning", "FANBOYS links"]
+  },
+  {
+    id: "math12-u3",
+    subject: "Mathematics",
+    unitNumber: 3,
+    title: "Introduction to Differential Calculus",
+    titleAmharic: "የዲፈረንሺያል ካልኩለስ መግቢያ",
+    grade: 12,
+    notes: `### 📈 Grade 12 Math Unit 3: Introduction to Differential Calculus Core Notes
+This essential matric unit explores how functions change instantaneously, laying the foundation for engineering and optimization.
+
+#### 1. Definition of Derivative
+The derivative of a function $f(x)$ represents the slope of the tangent line to the graph of $f$ at a point. It is mathematically defined as the limit of the difference quotient:
+$$f'(x) = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}$$
+- If this limit exists, the function is said to be **differentiable** at $x$.
+- **Differentiability vs Continuity:** If a function is differentiable at $x=c$, it **must** be continuous at $x=c$. However, the converse is not always true (e.g., $f(x) = |x|$ is continuous at $x=0$, but not differentiable there because of a sharp corner).
+
+#### 2. Core Differentiation Rules
+- **Power Rule:** $\\frac{d}{dx}[x^n] = n x^{n-1}$ for any real number $n$.
+- **Product Rule:** $\\frac{d}{dx}[f(x)g(x)] = f'(x)g(x) + f(x)g'(x)$
+- **Quotient Rule:** $\\frac{d}{dx}[\\frac{f(x)}{g(x)}] = \\frac{f'(x)g(x) - f(x)g'(x)}{[g(x)]^2}$
+- **Chain Rule (for composite functions):** $\\frac{d}{dx}[f(g(x))] = f'(g(x)) \\cdot g'(x)$
+
+#### 3. Applications of the Derivative
+- **Finding Tangent Lines:** The equation of the tangent line to $y = f(x)$ at $x_0$ is given by $y - f(x_0) = f'(x_0)(y - x_0)$.
+- **Critical Points:** Occur where $f'(x) = 0$ or where $f'(x)$ is undefined. These are candidates for absolute or local extrema.`,
+    notesAmharic: `### 📈 ሂሳብ 12ኛ ክፍል ምዕራፍ 3፡ የዲፈረንሺያል ካልኩለስ መግቢያ ማጠቃለያ
+ይህ ምዕራፍ ለብሔራዊ ማትሪክ ፈተና እጅግ ወሳኝ ሲሆን፣ የአንድ ፋንክሽን እሴት በቅጽበት እንዴት እንደሚለዋወጥ የሚያጠና የሂሳብ ዘርፍ ነው።
+
+#### 1. የዲሪቬቲቭ (Derivative) ትርጉም
+የአንድ ፋንክሽን $f(x)$ ዲሪቬቲቭ ማለት በግራፉ ላይ የ tangent መስመር ቁልቁለት (Slope) ነው። ይህም በሊሚት ቀመር እንደሚከተለው ይገለጻል፡
+$$f'(x) = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}$$
+- ይህ ሊሚት እውነተኛ ዋጋ ካለው ፋንክሽኑ በዚያ ነጥብ ላይ **Differentiable** ይባላል።
+- **ዲፈረንሺያብሊቲ እና ተከታታይነት (Continuity):** አንድ ፋንክሽን በአንድ ነጥብ ላይ ዲሪቬቲቭ ካለው፣ በዚያ ነጥብ ላይ የግድ ተከታታይ (Continuous) መሆን አለበት። ነገር ግን ተከታታይ የሆነ ሁሉ ዲሪቬቲቭ ይኖረዋል ማለት አይደለም (ለምሳሌ $f(x) = |x|$ በ $x=0$ ላይ ተከታታይ ቢሆንም ዲሪቬቲቭ የለውም ምክንያቱም የግራፉ ጫፍ ስለታም ነው)።
+
+#### 2. ዋና ዋና የዲሪቬቲቭ ህጎች
+- **የፓወር ህግ (Power Rule):** $\\frac{d}{dx}[x^n] = n x^{n-1}$
+- **የማባዛት ህግ (Product Rule):** $(f \\cdot g)' = f'g + f g'$
+- **የማካፈል ህግ (Quotient Rule):** $(\\frac{f}{g})' = \\frac{f'g - f g'}{g^2}$
+- **የሰንሰለት ህግ (Chain Rule):** $\\frac{d}{dx}[f(g(x))] = f'(g(x)) \\cdot g'(x)$
+
+#### 3. የዲሪቬቲቭ ተግባራዊ አጠቃቀሞች
+- **ክሪቲካል ፖይንቶች (Critical Points):** $f'(x) = 0$ ወይም $f'(x)$ የማይበየንባቸው (undefined) ቦታዎች ናቸው። እነዚህ ቦታዎች የፋንክሽኑ ከፍተኛ ወይም ዝቅተኛ (extrema) ነጥቦች ይሆናሉ ማለት ነው።`,
+    keyFormulas: ["(x^n)' = n*x^(n-1)", "(f/g)' = (f'g-fg')/g^2", "Tangent line: y - y0 = m(x - x0)"]
+  },
+  {
+    id: "phys12-u3",
+    subject: "Physics",
+    unitNumber: 3,
+    title: "Thermodynamics and Heat Engines",
+    titleAmharic: "ቴርሞዳይናሚክስ እና የሙቀት ሞተሮች",
+    grade: 12,
+    notes: `### 🌡️ Grade 12 Physics Unit 3: Thermodynamics & Heat Engines
+Thermodynamics defines the physical laws governing heat energy propagation, internal energy changes, and conversion to mechanical work.
+
+#### 1. Laws of Thermodynamics
+- **Zeroth Law:** Defines temperature. If systems A and B are in thermal equilibrium with system C, they are in thermal equilibrium with each other.
+- **First Law (Conservation of Energy):**
+  $$\\Delta U = Q - W$$
+  where $\\Delta U$ is the change in internal energy, $Q$ is heat added to the system, and $W$ is work done **by** the system.
+- **Second Law:** Heat cannot spontaneously flow from a colder body to a hotter body. The absolute entropy of an isolated system always increases over time.
+
+#### 2. Thermodynamic Processes
+1. **Isothermal:** Constant temperature ($\\Delta T = 0 \\Rightarrow \\Delta U = 0 \\Rightarrow Q = W$).
+2. **Isobaric:** Constant pressure ($W = P\\Delta V$).
+3. **Isochoric:** Constant volume ($\\Delta V = 0 \\Rightarrow W = 0 \\Rightarrow \\Delta U = Q$).
+4. **Adiabatic:** No heat exchange ($Q = 0 \\Rightarrow \\Delta U = -W$).
+
+#### 3. Heat Engines & Efficiency
+A heat engine extracts heat $Q_H$ from a hot reservoir, performs work $W$, and exhausts waste heat $Q_C$ to a cold sink.
+- **Efficiency ($\\eta$):** 
+  $$\\eta = \\frac{W}{Q_H} = 1 - \\frac{Q_C}{Q_H}$$
+- **Carnot Engine Ideal Limit:** The maximum theoretical efficiency for any heat engine operating between temperatures $T_H$ and $T_C$ in Kelvin:
+  $$\\eta_{Carnot} = 1 - \\frac{T_C}{T_H}$$`,
+    notesAmharic: `### 🌡️ ፊዚክስ 12ኛ ክፍል ምዕራፍ 3፡ ቴርሞዳይናሚክስ እና የሙቀት ሞተሮች
+ቴርሞዳይናሚክስ ስለ ሙቀት ኃይል ግንኙነት፣ ስለ ውስጣዊ ኃይል (Internal Energy) ለውጥ እና ሙቀትን ወደ ሜካኒካል ሥራ ስለመቀየር የሚያጠና የፊዚክስ ትልቅ አምድ ነው።
+
+#### 1. የቴርሞዳይናሚክስ ሕጎች
+- **ዜሮኛው ሕግ (Zeroth Law):** የሙቀት መጠን (temperature) ምንነትን ይበይናል።
+- **የመጀመሪያው ሕግ (የኃይል ጥበቃ ሕግ):**
+  $$\\Delta U = Q - W$$
+  እዚህ ጋር $\\Delta U$ የውስጣዊ ኃይል ለውጥ፣ $Q$ ወደ ማሽን የተጨመረ ሙቀት፣ $W$ ደግሞ በማሽኑ የተሰራ ሥራ ነው።
+- **ሁለተኛው ሕግ:** ሙቀት በራሱ ጊዜ ከቀዝቃዛ አካል ወደ ሞቃት አካል መፍሰስ አይችልም።
+
+#### 2. የቴርሞዳይናሚክስ ሂደቶች
+1. **አይሶተርማል (Isothermal):** የሙቀት መጠን ቋሚ ሲሆን ($\\Delta T = 0$ ፤ ስለዚህ $\\Delta U = 0$)።
+2. **አይሶባሪክ (Isobaric):** ፕሬሸር (ግፊት) ቋሚ ሲሆን ($W = P\\Delta V$)።
+3. **አይሶኮሪክ (Isochoric):** ይዘት (Volume) ቋሚ ሲሆን ($\\Delta V = 0$ ፤ ስለዚህ ሥራ $W = 0$)።
+4. **አዲያባቲክ (Adiabatic):** ምንም ዓይነት የሙቀት ልውውጥ ከውጭ ጋር ሳይኖር ሲቀር ($Q = 0$)።
+
+#### 3. የሙቀት ማሽኖች ብቃት (Efficiency)
+- **የማሽን ብቃት መጠን ($\\eta$):** 
+  $$\\eta = \\frac{W}{Q_H} = 1 - \\frac{Q_C}{Q_H}$$
+- **የካርኖት ማሽን የአቅም ወሰን (Carnot Efficiency):** በKelvin የሚለኩትን ሞቃት ($T_H$) እና ቀዝቃዛ ($T_C$) የሙቀት መጠኖችን በመጠቀም የሚሰላ ከፍተኛው የብቃት ቀመር፡
+  $$\\eta_{Carnot} = 1 - \\frac{T_C}{T_H}$$`,
+    keyFormulas: ["ΔU = Q - W", "Work_isobaric = P * ΔV", "Efficiency_Carnot = 1 - Tc / Th"]
+  },
+  {
+    id: "chem12-u2",
+    subject: "Chemistry",
+    unitNumber: 2,
+    title: "Chemical Kinetics and Reaction Rates",
+    titleAmharic: "ኬሚካል ኪነቲክስ እና የግብረመልስ ፍጥነት",
+    grade: 12,
+    notes: `### 🧪 Grade 12 Chemistry Unit 2: Chemical Kinetics
+Chemical kinetics deals with the speed or rate at which chemical reactions occur, and the molecular mechanisms that govern these processes.
+
+#### 1. Simple Reaction Rates
+The reaction rate expresses how the concentration of reactants decreases or products increases per unit time. For $A \\to B$:
+$$\\text{Rate} = -\\frac{\\Delta [A]}{\\Delta t} = \\frac{\\Delta [B]}{\\Delta t}$$
+
+#### 2. Rate Laws and Reaction Order
+The rate law expresses the quantitative relationship between the rate and reactant concentrations:
+$$\\text{Rate} = k [A]^m [B]^n$$
+- **$k$ (Rate Constant):** Temperature-dependent constant characteristic of individual reactions.
+- **Reaction Order ($m, n$):** Determined experimentally. The overall order is the sum $m + n$.
+- **Collision Theory:** For a reaction to happen, reactant particles must collide with **sufficient kinetic energy** (Activation Energy, $E_a$) and in the **correct geometric orientation**.
+
+#### 3. Factors Influencing Reaction Rate
+1. **Concentration:** Higher concentration increases collision frequency.
+2. **Temperature:** Increasing temperature increases average kinetic energy and the fraction of molecules with $KE \\ge E_a$.
+3. **Catalysts:** Accelerate reactions by providing an alternative pathway with a **lower activation energy ($E_a$)**, without being consumed in the process.`,
+    notesAmharic: `### 🧪 ኬሚስትሪ 12ኛ ክፍል ምዕራፍ 2፡ ኬሚካል ኪነቲክስ
+ኬሚካል ኪነቲክስ ማለት ኬሚካላዊ ምላሾች (reactions) የሚካሄዱበትን ፍጥነትና የፍጥነቶቹን መንስኤ መቆጣጠሪያ ጽንሰ-ሀሳቦችን የሚያጠና ዘርፍ ነው።
+
+#### 1. የግብረመልስ ፍጥነት (Reaction Rate)
+ፍጥነት ማለት በአንድ ሴኮንድ/ደቂቃ ውስጥ የመነሻ ንጥረ ነገሮች (reactants) መመናመን ወይም የውጤት (products) መብዛት መለኪያ ነው። ለ $A \\to B$ ምላሽ፡
+$$\\text{Rate} = -\\frac{\\Delta [A]}{\\Delta t}$$
+
+#### 2. የሬት ሎው ቀመር (Rate Law)
+የምላሽ መጠንና የመነሻ ኬሚካሎች ክምችት ግንኙነት መለኪያ፡
+$$\\text{Rate} = k [A]^m [B]^n$$
+- **$k$ (የፍጥነት ቋሚ):** በሙቀት መጠን ላይ ወሳኝ ጥገኝነት ያለው እሴት ነው።
+- **የግጭት ንድፈ-ሀሳብ (Collision Theory):** አንድ ምላሽ ለመፈጠር መጋጨት ብቻ ሳይሆን፣ ቅንጣቶቹ **በቂ ኃይል (Activation Energy)** እና **በትክክለኛው አቅጣጫ** መጋጨት አለባቸው።
+
+#### 3. በኬሚካል ፍጥነት ላይ ተጽእኖ ፈጣሪዎች
+1. **ትኩረት (Concentration):** ክምችት ሲጨምር በተወሰነ ሰዓት ውስጥ የሚኖሩ ግጭቶች ቁጥር ይጨምራል።
+2. **ቴምፕሬቸር (ሙቀት):** ሙቀት መጨመር ቅንጣቶቹ በከፍተኛ ፍጥነትና በከፍተኛ ኃይል እንዲጋጩ ያደርጋል።
+3. **ካታሊስት (Catalysts):** የኬሚካሉን መነሻ ኃይል (Activation Energy) ዝቅ በማድረግ ሂደቱን እጅግ ያፈጥነዋል (ካታሊስት ራሱ ግን ምንም ጉዳት አይደርስበትም)።`,
+    keyFormulas: ["Rate = k [A]^m [B]^n", "Half life - First Order = 0.693 / k"]
+  },
+  {
+    id: "bio12-u3",
+    subject: "Biology",
+    unitNumber: 3,
+    title: "Cellular Respiration and Photosynthesis",
+    titleAmharic: "የሴል መተንፈስ እና ፎቶሲንተሲስ",
+    grade: 12,
+    notes: `### 🌿 Grade 12 Biology Unit 3: Energetics (Cell Respiration & Photosynthesis)
+All living organisms require metabolic energy stored in the universal energy currency, Adenosine Triphosphate (ATP). This unit details how energy is captured and released.
+
+#### 1. Photosynthesis: Converting Solar to Chemical Energy
+Photosynthesis occurs in plants' chloroplasts and is divided into two primary stages:
+1. **Light-Dependent Reactions (Thylakoids):** Chlorophyll absorbs solar radiation to split water ($H_2O$), releasing Oxygen ($O_2$), and generating ATP and NADPH.
+2. **Light-Independent Reactions / Calvin Cycle (Stroma):** Employs ATP and NADPH from light reactions to fix carbon dioxide ($CO_2$) into high-energy sugars ($C_6H_{12}O_6$).
+
+#### 2. Cellular Respiration: Releasing Energy
+The biochemical breakdown of glucose to synthesize ATP. It includes four distinct steps:
+1. **Glycolysis (Cytoplasm):** Splitting of 6-carbon glucose into two 3-carbon pyruvates, yielding a net of $2 \\text{ ATP}$ and $2 \\text{ NADH}$. (Oxygen is not required).
+2. **Link Reaction (Mitochondrial Matrix):** Pyruvate converts to Acetyl-CoA, releasing $CO_2$.
+3. **Krebs Cycle / Citric Acid Cycle (Matrix):** Breaks down Acetyl-CoA to yield $CO_2$, $2 \\text{ ATP}$, $6 \\text{ NADH}$, and $2 \\text{ FADH}_2$.
+4. **Electron Transport Chain & Oxidative Phosphorylation (Inner Membrane):** High-energy electrons from NADH and $\\text{FADH}_2$ pass through cytochromes, pumping protons to construct an electrochemical gradient. ATP Synthase uses this gradient to yield $\\approx 34 \\text{ ATP}$. Oxygen acts as the ultimate electron acceptor, fusing with protons to form water ($H_2O$).`,
+    notesAmharic: `### 🌿 ባዮሎጂ 12ኛ ክፍል ምዕራፍ 3፡ የሴል ኢነርጂ ትንተና
+ሕይወት ያላቸው ነገሮች በሙሉ በሴሎች ውስጥ የሜታቦሊዝም ኃይል (ATP) ይፈልጋሉ። ይህ ምዕራፍ ኃይል እንዴት እንደሚመረቱና በጥንቃቄ እንዴት ጥቅም ላይ እንደሚውሉ ያብራራል።
+
+#### 1. ፎቶሲንተሲስ (የፀሐይ ብርሃንን ወደ ኬሚካል ኃይል መቀየር)
+ፎቶሲንተሲስ በአረንጓዴ ዕፅዋት ክሎሮፕላስት (Chloroplast) ውስጥ ሲካሄድ በሁለት ደረጃዎች ይከፈላል፡
+1. **የብርሃን-ጥገኛ ደረጃ (Light Reactions - በThylakoids ውስጥ):** የአረንጓዴ ቅጠል ክሎሮፊል የፀሐይ ብርሃንን በመጠቀም ውሃን ($H_2O$) በመስበር ኦክስጅንን ይለቃል፤ እንዲሁም ATP እና NADPH ያመርታል።
+2. **የብርሃን-ንጻታዊ ደረጃ (Calvin Cycle - በStroma ውስጥ):** ከላይ የተገኙትን ኃይሎች በመጠቀም ካርቦን ዳይኦክሳይድን ($CO_2$) ወደ ግሉኮስ ስኳር ($C_6H_{12}O_6$) ይለውጣል።
+
+#### 2. የሴል መተንፈስ (Cellular Respiration - ኃይል ማመንጨት)
+ግሉኮስን በመስበር ለሴል የሚሆን የኤቲፒ (ATP) ኃይልን ማመንጨት። ሂደቱ አራት ዋና ክፍሎች አሉት፡
+1. **ግላይኮሊሲስ (Glycolysis - በሳይቶፕላዝም):** ባለ 6-ካርቦን ግሉኮስ ወደ ሁለት ፓይሩቬት የሚሰበርበት ሲሆን 2 ATP ያመርታል። (ኦክስጅን አያስፈልገውም)።
+2. **የሊንክ ግብረመልስ (Link Reaction - በሚቶኮንድሪያ ማትሪክስ):** ፓይሩቬት ወደ Acetyl-CoA ይቀየራል።
+3. **ክሬብስ ዑደት (Krebs Cycle):** Acetyl-CoA ተሰባብሮ ተጨማሪ 2 ATP እና በኤሌክትሮን የተሸከሙ NADH እና $\\text{FADH}_2$ ያመርታል።
+4. **ኤሌክትሮን ትራንስፖርት ቼይን (ETC - በውስጠኛው ሽፋን):** ከፍተኛ ኃይል ያላቸው ኤሌክትሮኖች በሽፋኑ ላይ ሲጓዙ በአጠቃላይ ጫና ፈጥረው **34 የሚጠጉ የኤቲፒ ኃይል** ያመነጫሉ። እዚህ ጋር ኦክስጅን የመጨረሻውን ኤሌክትሮን ተቀብሎ ከሃይድሮጅን ጋር በመዋሃድ ውሃ ($H_2O$) ይሰራል።`,
+    keyFormulas: ["Photosynthesis: 6CO2 + 6H2O + Light -> C6H12O6 + 6O2", "Respiration Net Output: ~36 to 38 ATP"]
+  },
+  {
+    id: "math11-u1",
+    subject: "Mathematics",
+    unitNumber: 1,
+    title: "Relations and Functions",
+    titleAmharic: "ግንኙነቶች እና ፈንክሽኖች",
+    grade: 11,
+    notes: `### 🎯 Grade 11 Math Unit 1: Relations & Functions Notes
+A critical cornerstone for calculus and advanced algebra. This unit details mapped coordinate structures and mapping behaviors.
+
+#### 1. Relations & Domain/Range
+A **relation** is any set of ordered pairs $(x, y)$.
+- **Domain:** The set of all first coordinates ($x$-values) of the ordered pairs.
+- **Range:** The set of all second coordinates ($y$-values) of the ordered pairs.
+
+#### 2. Functions definition
+A **function** is a relation in which each element in the domain is mapped to **exactly one** element in the range.
+- **Vertical Line Test:** A curve in the Cartesian plane represents a function if and only if no vertical line intersects the curve more than once.
+- **One-to-One Function (Injective):** A function $f$ is one-to-one if distinct elements in the domain have distinct images in the range (i.e., if $f(a) = f(b) \\implies a = b$).
+- **Onto Function (Surjective):** If the range of $f$ equals its co-domain.
+- **Inverse Function ($f^{-1}(x)$):** Exists if and only if the function is a bijection (both one-to-one and onto). The graph of $f^{-1}$ is the reflection of the graph of $f$ across the line $y = x$.`,
+    notesAmharic: `### 🎯 ሂሳብ 11ኛ ክፍል ምዕራፍ 1፡ ግንኙነቶች እና ፈንክሽኖች
+ይህ ምዕራፍ ለላቀ አልጀብራና ካልኩለስ መግቢያ መሠረታዊ ድንጋይ ነው።
+
+#### 1. ግንኙነት (Relations) እና ዶሜን/ሬንጅ
+- **ሬሌሽን (Relation):** በቅደም ተከተል የተጣመሩ የ $(x, y)$ ስብስቦች ናቸው።
+- **ዶሜን (Domain - ግብዓት):** የሁሉም የመጀመሪያ ቁጥሮች ($x$) ዋጋ ስብስብ።
+- **ሬንጅ (Range - ውፅዓት):** የሁሉም ሁለተኛ ቁጥሮች ($y$) ዋጋ ስብስብ።
+
+#### 2. ፈንክሽን (Functions)
+አንድ ሬሌሽን ፈንክሽን የሚባለው በዶሜን ውስጥ ያለ እያንዳንዱ አባል በሬንጅ ውስጥ **ለአንድ አካል ብቻ** ሲገናኝ ነው።
+- **የአግድም መስመር ፈተና (Vertical Line Test):** በግራፍ ላይ የተሰመረን መስመር ማንኛውም አግድም መስመር ከአንድ ጊዜ በላይ ካልቆረጠው ያ መስመር ፈንክሽን ነው።
+- **አንድ ለአንድ ፈንክሽን (One-to-One):** የተለያዩ የዶሜን አባላት የተለያዩ የሬንጅ አባላት ሲኖሯቸው ነው (ማለትም $f(a) = f(b) \\implies a = b$ ከሆነ)።
+- **ተገላቢጦሽ (Inverse) ፈንክሽን $f^{-1}(x)$:** የአንድ ፈንክሽን ተገላቢጦሽ የሚኖረው ፈንክሽኑ አንድ ለአንድ እና ሙሉ በሙሉ ተጋጣሚ (bijection) ሲሆን ብቻ ነው። የግራፉ ቅርጽ በ $y=x$ መስመር ላይ ተንጸባራቂ ይሆናል።`,
+    keyFormulas: ["Injective test: f(a) = f(b) => a = b", "Inverse: swap x and y, solve for y"]
+  },
+  {
+    id: "phys11-u3",
+    subject: "Physics",
+    unitNumber: 3,
+    title: "Work, Energy and Power",
+    titleAmharic: "ሥራ፣ ኃይል እና ጉልበት",
+    grade: 11,
+    notes: `### ⚙️ Grade 11 Physics Unit 3: Work, Energy & Power Core Notes
+Newtonian mechanics focuses intensely on energy transformations. This unit quantifies work and power parameters.
+
+#### 1. Work ($W$)
+Work is done when a force applied to an object causes displacement. Mathematically, it is the dot product of force ($F$) and displacement ($d$):
+$$W = \\vec{F} \\cdot \\vec{d} = F d \\cos\\theta$$
+where $\\theta$ is the angle between the force and displacement vectors.
+- **Unit:** Joules ($1 \\text{ J} = 1 \\text{ N}\\cdot\\text{m}$).
+- **Work-Energy Theorem:** The net work done on an object equals the change in its kinetic energy:
+  $$W_{net} = \\Delta KE = \\frac{1}{2} m v_f^2 - \\frac{1}{2} m v_i^2$$
+
+#### 2. Mechanical Energy
+- **Kinetic Energy ($KE$):** Energy of motion: $KE = \\frac{1}{2}mv^2$.
+- **Gravitational Potential Energy ($PE$):** Energy of position: $PE = mgh$.
+- **Elastic Potential Energy ($PE_{elastic}$):** Energy stored in a stretched spring: $PE_e = \\frac{1}{2}kx^2$ where $k$ is Spring Constant.
+
+#### 3. Power ($P$)
+Power is the rate at which work is done or energy is transferred:
+$$P = \\frac{W}{t} = \\vec{F} \\cdot \\vec{v}$$
+- **Unit:** Watts ($1 \\text{ W} = 1 \\text{ Joules per second}$).`,
+    notesAmharic: `### ⚙️ ፊዚክስ 11ኛ ክፍል ምዕራፍ 3፡ ሥራ፣ ኃይል እና ጉልበት
+ይህ ምዕራፍ በቁሶች እንቅስቃሴና በጉልበት ለውጥ መካከል ያለውን የቁጥር ትስስር ያሰላል።
+
+#### 1. ሥራ (Work)
+ሥራ ተሰርቷል የሚባለው በሚያርፍበት ኃይል ምክንያት እቃው ሲንቀሳቀስ (displacement ሲኖር) ነው፡
+$$W = F d \\cos\\theta$$
+እዚህ ጋር $\\theta$ በኃይሉና በነገሩ አቅጣጫ መካከል ያለው አንግል ነው።
+- **መለኪያ አሃድ:** ጁል (J) ነው።
+- **የሥራ እና እንቅሰቃሴ ኃይል ቲዎረም (Work-Energy Theorem):** በአንድ አካል ላይ የተሰራው ጠቅላላ ሥራ ከአካሉ የእንቅስቃሴ ኃይል ለውጥ ጋር እኩል ነው።
+  $$W_{net} = \\Delta KE = \\frac{1}{2} m v^2$$
+
+#### 2. ሜካኒካል ኃይል
+- **የእንቅስቃሴ ኃይል (Kinetic Energy):** በቁሱ ፍጥነት ምክንያት የሚገኝ ኃይል ($KE = \\frac{1}{2}mv^2$)።
+- **የቁመት አቅም ኃይል (Potential Energy):** በከፍታው ምክንያት የሚይዘው ኃይል ($PE = mgh$)።
+
+#### 3. ጉልበት / ፓወር (Power)
+ፓወር ማለት በአንድ ሴኮንድ የተሠራ የሥራ መጠን ወይም የኃይል ልውውጥ ፍጥነት ነው፡
+$$P = \\frac{W}{t} = F \\cdot v$$
+- **መለኪያ አሃድ:** ዋት (W) ($1 \\text{ ዋት} = 1 \\text{ ጁል በሰከንድ}$) ነው።`,
+    keyFormulas: ["W = F * d * cos θ", "KE = 1/2 m v^2", "P = Work / time = Force * velocity"]
+  },
+  {
+    id: "chem11-u1",
+    subject: "Chemistry",
+    unitNumber: 1,
+    title: "Atomic Structure and Periodic Table",
+    titleAmharic: "የአቶም መዋቅር እና የፔሪዮዲክ ሰንጠረዥ",
+    grade: 11,
+    notes: `### ⚛️ Grade 11 Chemistry Unit 1: Atomic Structure & Periodicity
+Understanding atomic configurations, quantum numbers, and structured elemental classifications.
+
+#### 1. Dual Nature of Matter & Quantum Model
+- **Electromagnetic Radiation:** $E = h\\nu = \\frac{hc}{\\lambda}$ where $h$ is Planck's constant.
+- **Heisenberg's Uncertainty Principle:** It is fundamentally impossible to simultaneously determine both the exact position and momentum of an electron.
+  $$\\Delta x \\cdot \\Delta p \\ge \\frac{h}{4\\pi}$$
+
+#### 2. The Four Quantum Numbers
+1. **Principal Quantum Number ($n$):** Defines main energy shell or level ($n = 1, 2, 3, \dots$).
+2. **Azimuthal Quantum Number ($l$):** Shape of orbital subshell ($l = 0 \\text{ to } n-1$). ($l=0: s$, $l=1: p$, $l=2: d$, $l=3: f$).
+3. **Magnetic Quantum Number ($m_l$):** Orientation of orbital in space ($-l \\text{ to } +l$).
+4. **Spin Quantum Number ($m_s$):** Direction of electron spin ($+1/2 \\text{ or } -1/2$).
+
+#### 3. Electron Configuration Rules
+- **Aufbau Principle:** Electrons fill lower-energy orbitals first.
+- **Pauli Exclusion Principle:** No two electrons in an atom can have the exact same set of four quantum numbers.
+- **Hund's Rule:** Orbitals of equal energy are each occupied by one electron before any pairing begins.`,
+    notesAmharic: `### ⚛️ ኬሚስትሪ 11ኛ ክፍል ምዕራፍ 1፡ የአቶም መዋቅር እና የንጥረ ነገሮች ሰንጠረዥ
+ይህ ምዕራፍ ስለ ኳንተም ሳይንስ፣ አቶሞች እንዴት እንደሚዋቀሩ እና የፔሪዮዲክ ቴብል ህጎችን ያብራራል።
+
+#### 1. የኳንተም ሞዴል እና የሄዘንበርግ ህግ
+- **የኮከብ ብርሃን ኃይል (Energy):** $E = h\\nu$
+- **የማይታወቀው ህግ (Heisenberg Uncertainty Principle):** በአንድ ቅጽበት የኤሌክትሮንን ትክክለኛ ቦታና ፍጥነትን በአንድ ላይ መናገር አይቻልም።
+
+#### 2. አራቱ ኳንተም ቁጥሮች (Quantum Numbers)
+1. **ፕሪንሲፓል ኳንተም ቁጥር ($n$):** ዋናውን የኢነርጂ ደረጃ የሚገልጽ።
+2. **አዚሙታል ($l$):** የኦርቢታሎችን ቅርጽ የሚወስን ($s, p, d, f$)።
+3. **ማግኔቲክ ($m_l$):** በህዋ ውስጥ ያላቸውን አቅጣጫ መለኪያ።
+4. **ስፒን ($m_s$):** የኤሌክትሮኑን መሽከርከሪያ አቅጣጫ የሚለይ ($+1/2$ ወይም $-1/2$)።
+
+#### 3. የኤሌክትሮን አቀማመጥ ህጎች (Electron Configuration)
+- **Aufbau Principle:** ኤሌክትሮኖች መጀመሪያ ዝቅተኛውን የኃይል ደረጃ ይሞላሉ።
+- **Pauli Exclusion Principle:** በአንድ ኦርቢታል ውስጥ የሚገጥሙ ሁለት ኤሌክትሮኖች አራቱም ኳንተም ቁጥር እኩል ሊሆንላቸው አይችልም።`,
+    keyFormulas: ["E = h * f", "Uncertainty: Δx * Δp >= h/4π"]
+  },
+  {
+    id: "bio11-u2",
+    subject: "Biology",
+    unitNumber: 2,
+    title: "Plant Anatomy and Water Relations",
+    titleAmharic: "የእፅዋት ውስጣዊ አወቃቀር እና የውሃ ግንኙነት",
+    grade: 11,
+    notes: `### 🌿 Grade 11 Biology Unit 2: Plant Structure & Physiological Movements
+Detailing agricultural biology, tissue configurations inside roots/stems, and xylem-phloem conduction processes.
+
+#### 1. Plant Tissues
+Divided into two main diagnostic types:
+1. **Meristematic Tissues:** Actively dividing embryonic cells found in growing regions (apical and lateral meristems).
+2. **Permanent Tissues:** Differentiated cells carrying specialized tasks:
+   - **Epidermal:** Outer protective shield.
+   - **Ground Tissues:** Parenchyma (storage), Collenchyma (flexible support), Sclerenchyma (rigid lignin support).
+   - **Vascular Tissues:** 
+     - **Xylem:** Conducts water and inorganic minerals upwards (under negative pressure / transpiration pull).
+     - **Phloem:** Translocates organic sugars downwards and upwards (by active translocation / source-to-sink).
+
+#### 2. Transpiration and Stomatal Regulation
+Transpiration is the vaporization loss of water from microscopic leaf pores called stomata.
+- **Cohesion-Tension Theory:** Water molecules are stuck together by hydrogen bonds (cohesion) and to xylem walls (adhesion), forming an unbroken continuous water column lifted upwards by transpiration pull.
+- **Guard Cells:** Regulate stomatal opening. When guard cells absorb water, they swell (turgid) and open. Under dry conditions, they lose water (flaccid) and close to stop water loss.`,
+    notesAmharic: `### 🌿 ባዮሎጂ 11ኛ ክፍል ምዕራፍ 2፡ የእፅዋት ውስጣዊ መዋቅር እና ውሃ ማጓጓዝ
+እፅዋት ውሃና አልሚ ምግቦችን እንዴት ወደ ላይና ታች እንደሚያጓጉዙ እና ቅጠላቸው እንዴት እንደሚሰራ ዝርዝር ማብራሪያ።
+
+#### 1. የእፅዋት ቲሹዎች (Plant Tissues)
+በሁለት ዋና ክፍሎች ይመደባሉ፡
+1. **ሜሪስቲማቲክ (Meristematic):** ለዕድገት የሚረዱና በየጊዜው የሚከፈሉ ህዋሳት የሚገኙበት (ለምሳሌ በስር እና በቅጠል ጫፍ)።
+2. **ቋሚ ቲሹዎች (Permanent Tissues):** ለተለያዩ ስራዎች የተለዩ ሴሎች፡
+   - **ዛይለም (Xylem):** ውሃንና ማዕድናትን ከስር ወደ ላይ (በ ትራንስፒሬሽን መሳብ) የሚያጓጉዝ ልዩ ቧንቧ።
+   - **ፍሎይም (Phloem):** በቅጠል የተመረተውን ስኳር/ምግብ ወደ መላው የዕፅዋት አካል የሚያጓጉዝ ቧንቧ።
+
+#### 2. ትራንስፒሬሽን (Transpiration) እና የጉარድ ህዋሳት
+ትራንስፒሬሽን ማለት ከቅጠሎች ቀዳዳ (Stomata) በፀሐይ ግለት ምክንያት ውሃ በእንፋሎት መጥፋት ነው።
+- **ካፒላሪ መርሕ:** የውሃ ሞለኪውሎች በራሳቸው መካከል ባለው የኮሂዥን (Cohesion) እና ከዛይለም ግድግዳ ጋር ባለው አድሂዥን (Adhesion) በመሳሳብ ወደላይ ይወጣሉ።
+- **ጋርድ ሴሎች (Guard Cells):** የቅጠሎቹን ቀዳዳዎች መክፈትና መዝጋት ይቆጣጠራሉ። ውሃ ሲያገኙ ይነፋሉ (turgid) ከዚያም ይከፈታሉ። በደረቅ ሰዓት ውሃ ሲያጡ ይቀንሳሉ (flaccid) ከዚያም ውሃ እንዳይፈስ ቅጠሉን ይዘጋሉ።`,
+    keyFormulas: ["Water potential model: Ψ = Ψs + Ψp", "Cohesion-Adhesion vectors"]
+  },
+  {
+    id: "math10-u2",
+    subject: "Mathematics",
+    unitNumber: 2,
+    title: "Exponential and Logarithmic Functions",
+    titleAmharic: "ኤክስፖነንሻል እና ሎጋሪዝም ፈንክሽኖች",
+    grade: 10,
+    notes: `### 📊 Grade 10 Math Unit 2: Exponential & Logarithmic Functions
+These inverse functions govern growth, decay, compounding, and scientific scales.
+
+#### 1. Exponential Functions
+An exponential function has the mathematical form:
+$$f(x) = b^x \\text{, where } b > 0 \\text{ and } b \\neq 1$$
+- **Domain:** All real numbers ($R$).
+- **Range:** All positive real numbers ($(0, \\infty)$).
+- **Asymptote:** The $x$-axis ($y = 0$) is the horizontal asymptote.
+- **Growth vs Decay:** If $b > 1$, the function grows exponentially. If $0 < b < 1$, the function exhibits exponential decay.
+
+#### 2. Logarithmic Functions (The Inverse)
+The log function is the formal mathematical inverse of the exponential function:
+$$y = \\log_b(x) \\iff b^y = x \\text{ (for } x > 0, b > 0, b \\neq 1\\text{)}$$
+- **Domain:** $(0, \\infty)$.
+- **Range:** $R$.
+- **Asymptote:** The $y$-axis ($x = 0$) is the vertical asymptote.
+
+#### 3. Core Properties of Logarithms
+- **Product Rule:** $\\log_b(xy) = \\log_b(x) + \\log_b(y)$
+- **Quotient Rule:** $\\log_b(\\frac{x}{y}) = \\log_b(x) - \\log_b(y)$
+- **Power Rule:** $\\log_b(x^p) = p \\log_b(x)$
+- **Change of Base Formula:** $\\log_b(x) = \\frac{\\log_a(x)}{\\log_a(b)}$`,
+    notesAmharic: `### 📊 ሂሳብ 10ኛ ክፍል ምዕራፍ 2፡ ኤክስፖነንሻል እና ሎጋሪዝም ፈንክሽኖች
+እነዚህ ፈንክሽኖች የህዝብ ቁጥር እድገትን፣ ባክቴሪያዎችን፣ ብድር ወለድንና የሳይንስ ሚዛኖችን ለማስላት ይጠቅማሉ።
+
+#### 1. ኤክስፖነንሻል ፈንክሽኖች (Exponential Functions)
+አጠቃላይ የሒሳብ ቅርጽ፡
+$$f(x) = b^x$$
+እዚህ ጋር መሠረቱ $b > 0$ እና $b \\neq 1$ መሆን አለበት።
+- **ዶሜን:** ሁሉም የሪል ቁጥሮች (R)።
+- **ሬንጅ:** ሁሉም ፖዘቲቭ የሪል ቁጥሮች ($(0, \\infty)$)።
+- **አስምፕቶት (Asymptote):** የ $x$-አክሰስ መስመር ($y = 0$) የግራፉ መደገፊያ መስመር (horizontal asymptote) ነው።
+
+#### 2. ሎጋሪዝም ፈንክሽኖች (የኤክስፖነንሻል ተቃራኒ)
+ሎጋሪዝም ማለት ከኤክስፖነንሻል ጋር በቀጥታ የሚገለበጥ (inverse) ፈንክሽን ነው፡
+$$y = \\log_b(x) \\iff b^y = x$$
+
+#### 3. የሎጋሪዝም መሠረታዊ ሕጎች
+- **የማባዛት ሕግ:** $\\log_b(xy) = \\log_b(x) + \\log_b(y)$
+- **የማካፈል ሕግ:** $\\log_b(\\frac{x}{y}) = \\log_b(x) - \\log_b(y)$
+- **የባለቤትነት ሕግ (Power):** $\\log_b(x^p) = p \\log_b(x)$
+- **ቤዝ መለወጫ ፎርሙላ:** $\\log_b(x) = \\frac{\\log(x)}{\\log(b)}$`,
+    keyFormulas: ["log_b(xy) = log_b(x) + log_b(y)", "Change base: log_b(x) = ln(x)/ln(b)"]
+  },
+  {
+    id: "hist12-u2",
+    subject: "History",
+    unitNumber: 2,
+    title: "The Zagwe Dynasty & Rock-Hewn Churches",
+    titleAmharic: "የዛግዌ ስርወ-መንግስት እና ውቅር አብያተ ክርስቲያናት",
+    grade: 12,
+    notes: `### 🏛️ History Unit 2: The Zagwe Dynasty & Rock-Hewn Architectural Masterpieces
+Following the decline of the Aksumite mercantile superpower, the political gravity shifted southwards to the mountainous districts of Lasta.
+
+#### 1. Rise of the Zagwe Dynasty (1137 - 1270 AD)
+- **Origin:** The Zagwe dynasty was founded by the Agaw ruling elites of Lasta, who married into the ruling Aksumite lineage.
+- **Capital:** **Adebha** (later renamed **Roha**, and eventually **Lalibela** after its most legendary king).
+- **Legitimacy:** The Zagwe kings faced opposition from some northern elites who claimed they were not of the Solomonic line, leading the Zagwe kings to actively sponsor magnificent religious monuments to establish divine legitimacy.
+
+#### 2. King Lalibela & The Rock-Hewn Churches (Unesco Heritage)
+King Lalibela (ruled late 12th/early 13th century) commissioned eleven monolithic and semi-monolithic churches, carved directly from solid volcanic tuff bedrock.
+- **Monolithic Masterpiece (Bete Giyorgis):** Carved in the shape of a perfect Greek Cross, standing completely free from the surrounding rock canyon, representing a peak level of medieval civil engineering.
+- **Engineering Excellence:** Complex underground drainage channels, tunnels connecting the churches, and precision-cut pillars.
+- **Fall of the Dynasty:** In 1270 AD, the last Zagwe King (Yetbarak) was overthrown by Yekuno Amlak, restoring the "Solomonic Dynasty."`,
+    notesAmharic: `### 🏛️ ታሪክ 12ኛ ክፍል ምዕራፍ 2፡ የዛግዌ ስርወ-مንግስት እና የላሊበላ ውቅር አብያተ ክርስቲያናት
+የአክሱም መንግሥት የንግድ ኃይል ከደከመ በኋላ የፖለቲካ ማዕከሉ ወደ ደቡብ ወደ ላስታ ተራራማ አካባቢዎች ተዛወረ።
+
+#### 1. የዛግዌ ስርወ-መንግስት መነሳት (1137 - 1270 ዓ.ም)
+- **መነሻ:** ስልጣኑን የያዙት የላስታው አገው (Agaw) መሪዎች ሲሆኑ፣ ከአክሱም ነገሥታት ወገን ጋር በጋብቻ ተሳስረው ነበር።
+- **ዋና ከተማ:** **አደብሃ** (በኋላ **ሮሃ** በመባል የታወቀችና በመጨረሻም በታዋቂው ንጉሥ ስም **ላሊበላ** ተብላ የተጠራች)።
+
+#### 2. ንጉሥ ላሊበላ እና አስደናቂ አብያተ ክርስቲያናት
+ንጉሥ ላሊበላ በ12ኛው ክፍለ ዘመን መጨረሻ ላይ ከነጠላ የእሳተ ገሞራ አለት ተፈልፍለው የተሰሩ 11 ድንቅ አብያተ ክርስቲያናትን አሰርቷል።
+- **ቤተ ጊዮርጊስ (Bete Giyorgis):** የመስቀል ቅርጽ ያለውና ከአካባቢው አለት ሙሉ በሙሉ ተለያይቶ የተሰራው ድንቅ የኢንጂነሪንግና የአርክቴክቸር ጥበብ ነው።
+- **የስርወ-መንግስቱ ማክተም:** በ1270 ዓ.ም የመጨረሻው የዛግዌ ንጉሥ (ይትባረክ) በይኩኖ አምላክ በመሸነፉ የ"ሰለሞናዊው ስርወ-መንግስት" ዳግም ተመሰረተ።`,
+    keyFormulas: ["11 Rock Churches", "Agaw Lineage in Roha", "Sovereign: Lalibela, Na'aku La'ab"]
+  },
+  {
+    id: "geog12-u2",
+    subject: "Geography",
+    unitNumber: 2,
+    title: "Climatology and Agro-Ecological Zones of Ethiopia",
+    titleAmharic: "የአየር ንብረት ጥናት እና የኢትዮጵያ እርሻ-አካባቢያዊ ዞኖች",
+    grade: 12,
+    notes: `### 🌍 Geography Unit 2: Climatology & Ethiopian Agro-Ecological Zones
+Understanding climate drivers, rain delivery mechanisms, and traditional altitude-dependent farming ecosystems in East Africa.
+
+#### 1. Factors Controlling Climate in Ethiopia
+Ethiopia is located relative to the Equator (tropical belt), but its local climate is controlled heavily by:
+1. **Latitude:** Near equator, receiving intense solar rays.
+2. **Altitude (Elevation):** The ultimate driver. Temperature decreases by $\\approx 0.6^\\circ\\text{C}$ for every $100\\text{m}$ increase in elevation (lapse rate).
+3. **Winds & Air Masses:** The Inter-Tropical Convergence Zone (ITCZ) controls seasonal rainfall. When ITCZ swings north in June-August, warm moist southwesterly monsoon winds bring rain to highlands (Kiremt rainfall).
+
+#### 2. Traditional Agro-Ecological Zones
+Ethiopians have traditionally classified climate zones based on altitude and thermal limitations:
+1. **Wirch (Alpine/Cold):** Above $3,300 \\text{ m}$ elevation. Temperature $< 10^\\circ\\text{C}$. Crop: Barley.
+2. **Dega (Cool/Highland):** $2,300 - 3,300 \\text{ m}$. Temperature $10^\\circ\\text{C} - 16^\\circ\\text{C}$. Crops: Wheat, Teff, Barley, Potatoes.
+3. **Woina Dega (Sub-Tropical/Temperate):** $1,500 - 2,300 \\text{ m}$. Temperature $16^\\circ\\text{C} - 20^\\circ\\text{C}$. The most populated, ideal zone. Crops: Teff, Maize, Coffee.
+4. **Kola (Hot Semi-Arid):** $500 - 1,500 \\text{ m}$. Temperature $20^\\circ\\text{C} - 30^\\circ\\text{C}$. Crops: Sorghum, Millet.
+5. **Berha (Desert/Arid):** Below $500 \\text{ m}$ elevation. Temperature $> 30^\\circ\\text{C}$. Extreme evaporation. Arid nomadic livestock farming.`,
+    notesAmharic: `### 🌍 ጂኦግራፊ 12ኛ ክፍል ምዕራፍ 2፡ የአየር ንብረት እና ባህላዊ የአየር ጠባይ ክፍሎች
+በኢትዮጵያ የአየር ንብረት ሁኔታዎችን የሚፈጥሩ ተጽዕኖዎች እና በከፍታ ላይ ተመስርተው የሚከፋፈሉ ባህላዊ የአስተራረስ ዞኖች ትንተና።
+
+#### 1. የኢትዮጵያን አየር ንብረት የሚቆጣጠሩ ዋና ዋና ነገሮች
+ኢትዮጵያ በሞቃታማው ቀበቶ (Equator) አቅራቢያ የምትገኝ ቢሆንም፣ የአየር ሁኔታዋን የሚወስኑት፡
+1. **ከፍታ (Altitude):** ትልቁ ገዢ ምክንያት ነው። ከፍታ በሄድን ቁጥር በየ $100$ ሜትር የሙቀት መጠን በ $0.6$ ዲግሪ ሴልሺየስ ይቀንሳል።
+2. **የአየር ግፊትና ነፋሳቶች (ITCZ):** ወቅታዊ የዝናብ ስርጭትን የሚወስነው የ ITCZ እንቅስቃሴ ነው። ከሰኔ እስከ ነሐሴ ያለው የክረምት ዝናብ የሚገኘው ከደቡብ ምስራቅ አትላንቲክ የሚነሳው እርጥብ ነፋስ ወደ ደጋማ ቦታዎች ሲተም ነው።
+
+#### 2. የአምስቱ ባህላዊ የአየር ንብረት ክፍሎች (Agro-Ecological Zones)
+የሀገሪቱ ገበሬዎች ከፍታንና የአየር ሙቀትን መሠረት በማድረግ መሬትን አምስት ቦታ ይከፍሉታል፡
+1. **ውርጭ (Wirch):** ከባሕር ጠለል በላይ ከ 3,300 ሜትር በላይ። በጣም ቀዝቃዛ። ገብስ ብቻ በብዛት ይበቅላል።
+2. **ደጋ (Dega):** ከ 2,300 እስከ 3,300 ሜትር። ቀዝቃዛ አየር ያለውና ስንዴ፣ ገብስ፣ ድንች የሚመረትበት።
+3. **ወይና ደጋ (Woina Dega):** ከ 1,500 እስከ 2,300 ሜትር። ለሰው ልጅ ኑሮ እጅግ ተስማሚና በርካታ ሰብሎች (ቡና፣ ጤፍ፣ በቆሎ) የሚበቅሉበት።
+4. **ቆላ (Kola):** ከ 500 እስከ 1,500 ሜትር። ሞቃታማና ደረቅ አየር ያለው። ማሽላና ዘንጋዳ በብዛት ይመረታል።
+5. **በረኃ (Berha):** ከ 500 ሜትር በታች። እጅግ ሞቃታማና ዝናብ አልባ። የፍየልና የግመል እረኝነት ብቻ የሚካሄድበት።`,
+    keyFormulas: ["Lapse rate: -0.6°C / 100m", "5 Traditional Zones: Wirch, Dega, Woina-Dega, Kola, Berha"]
   }
 ];
+
 

@@ -51,7 +51,11 @@ import {
   Download,
   Zap,
   Beaker,
-  Calculator
+  Calculator,
+  Languages,
+  Sun,
+  Moon,
+  LogOut
 } from 'lucide-react';
 
 function FormulaSolver({ item, lang }: { item: any; lang: 'amh' | 'eng' }) {
@@ -187,21 +191,24 @@ function FormulaSolver({ item, lang }: { item: any; lang: 'amh' | 'eng' }) {
         <span className="text-gray-400 uppercase tracking-wide font-extrabold text-[9px]">
           {lang === 'amh' ? 'የተሰላ ውጤት (Solution):' : 'Derived Answer:'}
         </span>
-        <span className="font-mono font-black text-vip-gold tracking-wide">{result}</span>
+        <span className="font-mono font-black text-vip-gold">
+          {result !== null ? result : (lang === 'amh' ? 'እሴቶችን ያስገቡ...' : 'Awaiting input...')}
+        </span>
       </div>
     </div>
   );
 }
 
-// ==========================================
-// 10K+ BILINGUAL PROCEDURAL MATRIC EXAM GENERATOR
-// ==========================================
 function generateProceduralMCQs(subject: string, grade: number, count: number): MCQQuestion[] {
   const list: MCQQuestion[] = [];
   const timestamp = Date.now();
+  const subL = subject.toLowerCase();
+
+  const names = ["Naol", "Ezra", "Selam", "Chala", "Aster", "Almaz", "Abebe", "Kebede", "Hailu", "Bonsa", "Tigist", "Yosef", "Biniam", "Rahel", "Kaleb", "Eldana", "Saba", "Tariku", "Dawit", "Tsion"];
+  const boardYears = ["2012 ESSLCE", "2013 ESSLCE", "2014 ESSLCE", "2015 ESSLCE", "2016 ESSLCE", "2017 ESSLCE", "2018 Model Pre-Prep"];
 
   for (let i = 0; i < count; i++) {
-    const qId = `procedural-${subject.toLowerCase()}-g${grade}-${timestamp}-${i}`;
+    const qId = `procedural-${subL.replace(/\s+/g, "")}-g${grade}-${timestamp}-${i}`;
     let q: string = "";
     let qAmh: string = "";
     let options: string[] = [];
@@ -209,45 +216,48 @@ function generateProceduralMCQs(subject: string, grade: number, count: number): 
     let answerIndex: number = 0;
     let explanation: string = "";
     let explanationAmh: string = "";
-    let year: string = "Diagnostic ESSLCE Model";
     let stream: "Natural Science" | "Social Science" | "Both" = "Both";
 
-    // Randomize constants
-    const c1 = Math.floor(Math.random() * 12) + 2;
-    const c2 = Math.floor(Math.random() * 8) + 2;
-    const c3 = Math.floor(Math.random() * 20) + 5;
+    const yr = boardYears[i % boardYears.length];
+    const student = names[i % names.length];
 
-    if (subject.toLowerCase().includes("math")) {
+    // Multi-factor robust deterministic seeds per index
+    const seed1 = ((i * 17 + 11) % 15) + 3;
+    const seed2 = ((i * 23 + 5) % 9) + 2;
+    const seed3 = ((i * 29 + 8) % 30) + 10;
+    const seed4 = ((i * 31 + 4) % 1200) + 100;
+
+    if (subL.includes("math")) {
       stream = "Both";
-      const mathType = i % 5;
+      const mathType = i % 8;
       if (mathType === 0) {
         // Sequences
-        const firstTerm = c1;
-        const diff = c2;
-        const n = 10;
-        const ansVal = firstTerm + (n - 1) * diff;
-        q = `Given an arithmetic sequence with first term $a_1 = ${firstTerm}$ and common difference $d = ${diff}$, find the value of the 10th term ($a_{10}$).`;
-        qAmh = `የመጀመሪያው አባል $a_1 = ${firstTerm}$ እና የጋራ ልዩነት $d = ${diff}$ የሆነው የአሪትሜቲክ ቅደም ተከተል 10ኛ አባል ($a_{10}$) ስንት ነው?`;
+        const firstTerm = seed1;
+        const diff = seed2;
+        const nIndex = 10 + (i % 5);
+        const ansVal = firstTerm + (nIndex - 1) * diff;
+        q = `Given an arithmetic sequence with first term $a_1 = ${firstTerm}$ and common difference $d = ${diff}$, find the value of the ${nIndex}-th term ($a_{${nIndex}}$).`;
+        qAmh = `የመጀመሪያው አባል $a_1 = ${firstTerm}$ እና የጋራ ልዩነት $d = ${diff}$ የሆነው የአሪትሜቲክ ቅደም ተከተል ${nIndex}ኛ አባል ($a_{${nIndex}}$) ስንት ነው?`;
         options = [
           `a) ${ansVal}`,
-          `b) ${ansVal - 3}`,
-          `c) ${ansVal + diff}`,
-          `d) ${ansVal + 5}`
+          `b) ${ansVal - seed2}`,
+          `c) ${ansVal + diff + 1}`,
+          `d) ${ansVal - 1}`
         ];
         optionsAmh = [
           `ሀ) ${ansVal}`,
-          `ለ) ${ansVal - 3}`,
-          `ሐ) ${ansVal + diff}`,
-          `መ) ${ansVal + 5}`
+          `ለ) ${ansVal - seed2}`,
+          `ሐ) ${ansVal + diff + 1}`,
+          `መ) ${ansVal - 1}`
         ];
         answerIndex = 0;
-        explanation = `The n-th term of an AP is $a_n = a_1 + (n - 1)d$. Here, $a_{10} = ${firstTerm} + (10 - 1) \\times ${diff} = ${firstTerm} + 9 \\times ${diff} = ${ansVal}$.`;
-        explanationAmh = `ማብራሪያ፡ የአሪትሜቲክ 10ኛ አባል ፎርሙላ $a_{10} = a_1 + 9d$ ነው። ዋጋዎችን ስንተካ፡ $a_{10} = ${firstTerm} + 9 \\times ${diff} = ${ansVal}$ ይሆናል፤ ስለዚህ ትክክለኛው መልስ ሀ) ነው።`;
+        explanation = `The n-th term of an AP is $a_n = a_1 + (n - 1)d$. Here, $a_{${nIndex}} = ${firstTerm} + (${nIndex} - 1) \\times ${diff} = ${ansVal}$.`;
+        explanationAmh = `ማብራሪያ፡ የአሪትሜቲክ ቅደም ተከተል ${nIndex}ኛ አባል ፎርሙላ $a_{n} = a_1 + (n-1)d$ ነው። ዋጋዎችን ስንተካ፡ $a_{${nIndex}} = ${firstTerm} + ${nIndex - 1} \\times ${diff} = ${ansVal}$ ይሆናል።`;
       } else if (mathType === 1) {
         // Limits
-        const limitVal = c1 + c2;
-        q = `Evaluate the limit as x approaches ${c1} of the function $f(x) = \\frac{x^2 - ${c1 * c1}}{x - ${c1}}$.`;
-         qAmh = `x ወደ ${c1} ሲቃረብ የ $f(x) = \\frac{x^2 - ${c1 * c1}}{x - ${c1}}$ ሊሚት ዋጋ ስንት ነው?`;
+        const limitVal = seed1 + seed2;
+        q = `Evaluate the limit as x approaches ${seed1} of the function $f(x) = \\frac{x^2 - ${seed1 * seed1}}{x - ${seed1}}$.`;
+         qAmh = `x ወደ ${seed1} ሲቃረብ የ $f(x) = \\frac{x^2 - ${seed1 * seed1}}{x - ${seed1}}$ ሊሚት ዋጋ ስንት ነው?`;
         options = [
           `a) ${limitVal - 2}`,
           `b) ${limitVal}`,
@@ -261,13 +271,13 @@ function generateProceduralMCQs(subject: string, grade: number, count: number): 
           `መ) ያልተበየነ`
         ];
         answerIndex = 1;
-        explanation = `By factoring, $\\frac{x^2 - ${c1 * c1}}{x - ${c1}} = \\frac{(x - ${c1})(x + ${c1})}{x - ${c1}} = x + ${c1}$. Taking the limit as x approaches ${c1} yields ${c1} + ${c1} = ${limitVal}.`;
-        explanationAmh = `ማብራሪያ፡ ፖሊኖሚያሉን በፋክተር ስንዘረዝር $\\frac{(x - ${c1})(x + ${c1})}{x - ${c1}} = x + ${c1}$ ይሆናል። ሊሚቱን ወደ ${c1} ስናስጠጋ ደግሞ ${c1} + ${c1} = ${limitVal}$ እናገኛለን።`;
+        explanation = `By factoring, $\\frac{x^2 - ${seed1 * seed1}}{x - ${seed1}} = \\frac{(x - ${seed1})(x + ${seed1})}{x - ${seed1}} = x + ${seed1}$. Taking the limit as x approaches ${seed1} yields ${seed1} + ${seed1} = ${limitVal}.`;
+        explanationAmh = `ማብራሪያ፡ ፖሊኖሚያሉን በፋክተር ስንዘረዝር $\\frac{(x - ${seed1})(x + ${seed1})}{x - ${seed1}} = x + ${seed1}$ ይሆናል። ሊሚቱን ወደ ${seed1} ስናስጠጋ ደግሞ ${seed1} + ${seed1} = ${limitVal}$ እናገኛለን።`;
       } else if (mathType === 2) {
         // Determinant of a 2x2 Matrix
-        const detVal = c1 * c3 - c2 * c2;
-        q = `Find the determinant of the 2x2 matrix $A = \\begin{bmatrix} ${c1} & ${c2} \\\\ ${c2} & ${c3} \\end{bmatrix}$.`;
-        qAmh = `የማትሪክስ $A = \\begin{bmatrix} ${c1} & ${c2} \\\\ ${c2} & ${c3} \\end{bmatrix}$ ዲተርሚናንት (Determinant) ዋጋ ስንት ነው?`;
+        const detVal = seed1 * seed3 - seed2 * seed2;
+        q = `Find the determinant of the 2x2 matrix $A = \\begin{bmatrix} ${seed1} & ${seed2} \\\\ ${seed2} & ${seed3} \\end{bmatrix}$.`;
+        qAmh = `የማትሪክስ $A = \\begin{bmatrix} ${seed1} & ${seed2} \\\\ ${seed2} & ${seed3} \\end{bmatrix}$ ዲተርሚናንት (Determinant) ዋጋ ስንት ነው?`;
         options = [
           `a) ${detVal + 4}`,
           `b) ${detVal}`,
@@ -281,59 +291,125 @@ function generateProceduralMCQs(subject: string, grade: number, count: number): 
           `መ) 0`
         ];
         answerIndex = 1;
-        explanation = `The determinant of a 2x2 matrix $\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix}$ is $ad - bc$. Here, det(A) = $(${c1} \\times ${c3}) - (${c2} \\times ${c2}) = ${c1 * c3} - ${c2 * c2} = ${detVal}$.`;
-        explanationAmh = `ማብራሪያ፡ የ 2x2 ማትሪክስ ዲተርሚናንት $ad - bc$ ነው። ስለዚህ det(A) = $(${c1} \\times ${c3}) - (${c2} \\times ${c2}) = ${detVal}$ ይሆናል፤ መልሱ ለ) ነው።`;
+        explanation = `The determinant of a 2x2 matrix $\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix}$ is $ad - bc$. Here, det(A) = $(${seed1} \\times ${seed3}) - (${seed2} \\times ${seed2}) = ${seed1 * seed3} - ${seed2 * seed2} = ${detVal}$.`;
+        explanationAmh = `ማብራሪያ፡ የ 2x2 ማትሪክስ ዲተርሚናንት $ad - bc$ ነው። ስለዚህ det(A) = $(${seed1} \\times ${seed3}) - (${seed2} \\times ${seed2}) = ${detVal}$ ይሆናል፤ መልሱ ለ) ነው።`;
       } else if (mathType === 3) {
         // Linear equation slope
-        q = `What is the slope of the linear equation $3x - 4y = ${c1}$?`;
-        qAmh = `የቀጥተኛ መስመር እኩልታ $3x - 4y = ${c1}$ ቁልቁለት (Slope) ስንት ነው?`;
+        q = `What is the slope of the linear equation $${seed1}x - ${seed2}y = ${seed3}$?`;
+        qAmh = `የቀጥተኛ መስመር እኩልታ $${seed1}x - ${seed2}y = ${seed3}$ ቁልቁለት (Slope) ስንት ነው?`;
+        const slopeVal = (seed1 / seed2).toFixed(2);
+        const slopeInv = (-seed1 / seed2).toFixed(2);
         options = [
-          `a) 3/4`,
-          `b) -3/4`,
-          `c) 3`,
-          `d) 4/3`
+          `a) ${slopeVal}`,
+          `b) ${slopeInv}`,
+          `c) ${seed1}`,
+          `d) ${seed2}`
         ];
         optionsAmh = [
-          `ሀ) 3/4`,
-          `ለ) -3/4`,
-          `ሐ) 3`,
-          `መ) 4/3`
+          `ሀ) ${slopeVal}`,
+          `ለ) ${slopeInv}`,
+          `ሐ) ${seed1}`,
+          `መ) ${seed2}`
         ];
         answerIndex = 0;
-        explanation = `Rewrite the equation in slope-intercept form $y = mx + b$: $-4y = -3x + ${c1}$ which becomes $y = \\frac{3}{4}x - \\frac{${c1}}{4}$. The slope $m$ is $3/4$.`;
-        explanationAmh = `ማብራሪያ፡ መስመሩን ወደ $y = mx + b$ ቅርጽ ስንቀይር $y = \\frac{3}{4}x - \\frac{${c1}}{4}$ እናገኛለን። ቁልቁለቱ (m) $\\frac{3}{4}$ ነው።`;
-      } else {
-        // Geometric Series
-        const a1 = c1 * 3;
-        const sumVal = (a1 / (1 - 1/3)).toFixed(1);
-        q = `Find the sum of the convergent infinite geometric series with first term $a_1 = ${a1}$ and common ratio $r = 1/3$.`;
-        qAmh = `የመጀመሪያው አባል $a_1 = ${a1}$ እና የጋራ ውድር $r = 1/3$ የሆነው የጂኦሜትሪክ ድምር $S_{\\infty}$ ስንት ነው?`;
+        explanation = `Rewrite the equation in slope-intercept form $y = mx + b$: $-${seed2}y = -${seed1}x + ${seed3}$ which becomes $y = \\frac{${seed1}}{${seed2}}x - \\frac{${seed3}}{${seed2}}$. The slope $m$ is ${slopeVal}.`;
+        explanationAmh = `ማብራሪያ፡ የቀጥታ መስመር እኩልታውን ወደ $y = mx + b$ ቅርጽ ስናስቀምጠው $y = \\frac{${seed1}}{${seed2}}x - \\frac{${seed3}}{${seed2}}$ ይሆናል። ስለዚህ ቁልቁለቱ (m) ${slopeVal} ይሆናል፤ መልሱ ሀ) ነው።`;
+      } else if (mathType === 4) {
+        // Infinite Geometric Series Sum
+        const a1 = seed1 * 4;
+        const denominator = 1 / seed2;
+        const sumVal = (a1 / (1 - denominator)).toFixed(2);
+        q = `Find the sum of the convergent infinite geometric series with first term $a_1 = ${a1}$ and common ratio $r = 1/${seed2}$.`;
+        qAmh = `የመጀመሪያው አባል $a_1 = ${a1}$ እና የጋራ ውድር $r = 1/${seed2}$ የሆነው የጂኦሜትሪክ ተከታታይ ድምር $S_{\\infty}$ ስንት ነው?`;
         options = [
           `a) ${sumVal}`,
-          `b) ${(a1 * 1.5).toFixed(1)}`,
-          `c) ${(a1 * 2.5).toFixed(1)}`,
-          `d) Converges to 0`
+          `b) ${(a1 * 1.5).toFixed(2)}`,
+          `c) ${(a1 * 2.5).toFixed(2)}`,
+          `d) 0`
         ];
         optionsAmh = [
           `ሀ) ${sumVal}`,
-          `ለ) ${(a1 * 1.5).toFixed(1)}`,
-          `ሐ) ${(a1 * 2.5).toFixed(1)}`,
-          `መ) 0 ላይ ይቆማል`
+          `ለ) ${(a1 * 1.5).toFixed(2)}`,
+          `ሐ) ${(a1 * 2.5).toFixed(2)}`,
+          `መ) 0`
         ];
         answerIndex = 0;
-        explanation = `The sum of an infinite converging geometric series is $S_{\\infty} = \\frac{a_1}{1 - r}$. Substituting the values yields $S_{\\infty} = \\frac{${a1}}{1 - 1/3} = \\frac{${a1}}{2/3} = ${sumVal}$.`;
-        explanationAmh = `ማብራሪያ፡- ወሰን የሌለው ጂኦሜትሪክ ተከታታይ ድምር ፎርሙላ $S = \\frac{a_1}{1-r}$ ነው። ዋጋዎችን ስንተካ፡ $S = \\frac{${a1}}{2/3} = ${sumVal}$ እናገኛለን።`;
+        explanation = `The sum is $S_{\\infty} = \\frac{a_1}{1 - r} = \\frac{${a1}}{1 - 1/${seed2}} = ${sumVal}$.`;
+        explanationAmh = `ማብራሪያ፡ ወሰን-አልባ የጂኦሜትሪክ ድምር ስሌት ፎርሙላ $S = \\frac{a_1}{1 - r}$ ነው። ዋጋዎችን ስንተካ፡ $S = \\frac{${a1}}{1 - 1/${seed2}} = ${sumVal}$ እናገኛለን።`;
+      } else if (mathType === 5) {
+        // Tangent line slope
+        const xPt = seed2;
+        const slope = 2 * seed1 * xPt;
+        q = `Find the slope of the tangent line to the curve $f(x) = ${seed1}x^2$ at the point $x = ${xPt}$.`;
+        qAmh = `ለፎርሙላ $f(x) = ${seed1}x^2$ በቅጥ $x = ${xPt}$ ላይ የሚኖረው የአከካኪ መስመር ቁልቁለት (slope of tangent line) ስንት ነው?`;
+        options = [
+          `a) ${slope - 5}`,
+          `b) ${slope}`,
+          `c) ${seed1 * xPt}`,
+          `d) ${2 * seed1}`
+        ];
+        optionsAmh = [
+          `ሀ) ${slope - 5}`,
+          `ለ) ${slope}`,
+          `ሐ) ${seed1 * xPt}`,
+          `መ) ${2 * seed1}`
+        ];
+        answerIndex = 1;
+        explanation = `The derivative is $f'(x) = 2 \\times ${seed1}x = ${2 * seed1}x$. At $x = ${xPt}$, $f'(${xPt}) = ${2 * seed1} \\times ${xPt} = ${slope}$.`;
+        explanationAmh = `ማብራሪያ፡- የፈንክሽኑ ፈርስት ዲሪቬቲቭ $f'(x) = ${2 * seed1}x$ ነው። በሰጠው ነጥብ $x = ${xPt}$ ላይ ስንተካ፡ $f'(${xPt}) = ${2 * seed1} \\times ${xPt} = ${slope}$ ይሆናል፤ መልሱ ለ) ነው።`;
+      } else if (mathType === 6) {
+        // Dot Product
+        const dot = seed1 * seed2 - seed2 * seed3;
+        q = `Given vectors $\\vec{u} = ${seed1}\\hat{i} + ${seed2}\\hat{j}$ and $\\vec{v} = ${seed2}\\hat{i} - ${seed3}\\hat{j}$, find their dot product (scalar product $\\vec{u} \\cdot \\vec{v}$).`;
+        qAmh = `ቬክተሮች $\\vec{u} = ${seed1}\\hat{i} + ${seed2}\\hat{j}$ እና $\\vec{v} = ${seed2}\\hat{i} - ${seed3}\\hat{j}$ ቢሰጡ፣ የስክላር ብዜት ($\\vec{u} \\cdot \\vec{v}$) ዋጋ ስንት ነው?`;
+        options = [
+          `a) ${dot}`,
+          `b) ${dot + 10}`,
+          `c) ${seed1 + seed2}`,
+          `d) 0`
+        ];
+        optionsAmh = [
+          `ሀ) ${dot}`,
+          `ለ) ${dot + 10}`,
+          `ሐ) ${seed1 + seed2}`,
+          `መ) 0`
+        ];
+        answerIndex = 0;
+        explanation = `$\\vec{u} \\cdot \\vec{v} = (u_x v_x) + (u_y v_y) = (${seed1} \\times ${seed2}) + (${seed2} \\times -${seed3}) = ${seed1 * seed2} - ${seed2 * seed3} = ${dot}$.`;
+        explanationAmh = `ማብራሪያ፡- የሁለት ቬክተሮች ዳት ፕሮዳክት $\\vec{u} \\cdot \\vec{v} = u_x v_x + u_y v_y$ ነው። ዋጋዎችን ስናባዛ፡ ${seed1 * seed2} - ${seed2 * seed3} = ${dot}$ እናገኛለን።`;
+      } else {
+        // Remainder Theorem
+        const xPt = 2;
+        // P(x) = x^3 - seed1 * x^2 + seed2 * x + seed3
+        const remainder = Math.pow(xPt, 3) - seed1 * Math.pow(xPt, 2) + seed2 * xPt + seed3;
+        q = `According to the Remainder Theorem, find the remainder when the polynomial $P(x) = x^3 - ${seed1}x^2 + ${seed2}x + ${seed3}$ is divided by $x - ${xPt}$.`;
+        qAmh = `በቀሪ ቲዎረም (Remainder Theorem) መሠረት ቀመር $P(x) = x^3 - ${seed1}x^2 + ${seed2}x + ${seed3}$ ለ $x - ${xPt}$ ሲካፈል ቀሪው ስንት ይሆናል?`;
+        options = [
+          `a) ${remainder + 3}`,
+          `b) ${remainder - 2}`,
+          `c) ${remainder}`,
+          `d) 0`
+        ];
+        optionsAmh = [
+          `ሀ) ${remainder + 3}`,
+          `ለ) ${remainder - 2}`,
+          `ሐ) ${remainder}`,
+          `መ) 0`
+        ];
+        answerIndex = 2;
+        explanation = `By the Remainder Theorem, the remainder of $P(x)$ divided by $x - c$ is $P(c)$. Here, $P(${xPt}) = (${xPt})^3 - ${seed1}(${xPt})^2 + ${seed2}(${xPt}) + ${seed3} = 8 - ${4 * seed1} + ${2 * seed2} + ${seed3} = ${remainder}$.`;
+        explanationAmh = `ማብራሪያ፡- በቲዎረሙ መሠረት ቀሪው $P(${xPt})$ ነው፤ እሴቱን በቀመር ውስጥ ስንተካ፡ ${remainder}$ ይመጣል፤ ትክክለኛው መልስ ሐ) ነው።`;
       }
-    } else if (subject.toLowerCase().includes("phys")) {
+    } else if (subL.includes("phys")) {
       stream = "Natural Science";
-      const physType = i % 4;
+      const physType = i % 8;
       if (physType === 0) {
         // Kinematics final speed
-        const v0 = c1;
-        const acc = c2;
+        const v0 = seed1;
+        const acc = seed2;
         const time = 5;
         const vf = v0 + acc * time;
-        q = `A body starts with an initial velocity of $${v0} \\text{ m/s}$ and accelerates at a constant rate of $${acc} \\text{ m/s}^2$ for $5 \\text{ seconds}$. What is its final velocity?`;
+        q = `A body under constant acceleration has an initial velocity of $${v0} \\text{ m/s}$ and accelerates at a constant rate of $${acc} \\text{ m/s}^2$ for $5 \\text{ seconds}$. What is its final velocity?`;
         qAmh = `አንድ አካል በሰከንድ $${v0} \\text{ ሜትር}$ መነሻ ፍጥነት ተነስቶ በሴኮንድ $${acc} \\text{ ሜ/ሴ}^2$ ቋሚ ማጣደፍ ቢያደርግ ከ5 ሴኮንድ በኋላ የመጨረሻ ፍጥነቱ ስንት ይሆናል?`;
         options = [
           `a) ${vf - 5} m/s`,
@@ -352,11 +428,11 @@ function generateProceduralMCQs(subject: string, grade: number, count: number): 
         explanationAmh = `ማብራሪያ፡ የመጨረሻ ፍጥነት ፎርሙላ $v_f = v_0 + at$ ነው። እሴቶችን ስናስገባ $v_f = ${v0} + (${acc} \\times 5) = ${vf} \\text{ ሜ/ሴ}$ እናገኛለን።`;
       } else if (physType === 1) {
         // Newton's Second Law
-        const m = c2;
-        const a = c1;
+        const m = seed2;
+        const a = seed1;
         const f = m * a;
-        q = `Calculate the net force required to accelerate a $${m} \\text{ kg}$ object at a constant acceleration of $${a} \\text{ m/s}^2$.`;
-        qAmh = `ክብደቱ $${m} \\text{ ኪሎግራም}$ የሆነን አካል በ $${a} \\text{ ሜ/ሴ}^2$ ለማጣደፍ የሚያስፈልገው ጠቅላላ ኃይል (Force) ስንት ነው?`;
+        q = `Calculate the net force required to accelerate a $${m} \\text{ kg}$ object ${student} is studying at a constant acceleration of $${a} \\text{ m/s}^2$.`;
+        qAmh = `${student} እያጠናው ያለው ክብደቱ $${m} \\text{ ኪሎግራም}$ የሆነን አካል በ $${a} \\text{ ሜ/ሴ}^2$ ለማጣደፍ የሚያስፈልገው ጠቅላላ ኃይል (Force) ስንት ነው?`;
         options = [
           `a) ${f + 2} N`,
           `b) ${f - 4} N`,
@@ -371,13 +447,13 @@ function generateProceduralMCQs(subject: string, grade: number, count: number): 
         ];
         answerIndex = 2;
         explanation = `According to Newton's second law, Force = Mass $\\times$ Acceleration. Thus, $F = ${m} \\times ${a} = ${f} \\text{ Newtons}$.`;
-        explanationAmh = `ማብራሪያ፡ የኒውተን ሁለተኛ ህግ $F = m \\times a$ (ኃይል = ግዝፈት $\\times$ ማጣደፍ) ነው። ስለዚህ $F = ${m} \\times ${a} = ${f} \\text{ ኒውተን}$ ይሆናል፤ መልሱ ሐ) ነው።`;
+        explanationAmh = `ማብራሪያ፡ የኒውተን ሁለተኛ ህግ $F = m \\times a$ ነው። ስለዚህ $F = ${m} \\times ${a} = ${f} \\text{ ኒውተን}$ ይሆናል፤ መልሱ ሐ) ነው።`;
       } else if (physType === 2) {
         // Kinetic Energy
-        const mass = c1 * 2;
+        const mass = seed1 * 2;
         const velocity = 3;
         const ke = 0.5 * mass * velocity * velocity;
-        q = `An object of mass $${mass} \\text{ kg}$ has a velocity of $3 \\text{ m/s}$. What is its kinetic energy?`;
+        q = `An object of mass $${mass} \\text{ kg}$ has a constant velocity of $3 \\text{ m/s}$. What is its kinetic energy?`;
         qAmh = `ክብደቱ $${mass} \\text{ ኪሎግራም}$ የሆነ አካል በሰከንድ $3 \\text{ ሜትር}$ ፍጥነት ቢጓዝ የእንቅስቃሴ ኃይሉ (Kinetic Energy) ስንት ነው?`;
         options = [
           `a) ${ke} Joules`,
@@ -393,10 +469,10 @@ function generateProceduralMCQs(subject: string, grade: number, count: number): 
         ];
         answerIndex = 0;
         explanation = `Kinetic energy is calculated as $KE = \\frac{1}{2}mv^2$. Here, $KE = 0.5 \\times ${mass} \\times 3^2 = 0.5 \\times ${mass} \\times 9 = ${ke} \\text{ Joules}$.`;
-        explanationAmh = `ማብራሪያ፡ የእንቅስቃሴ ኃይል (Kinetic Energy) ፎርሙላ $KE = \\frac{1}{2}mv^2$ ነው። $KE = 0.5 \\times ${mass} \\times 9 = ${ke} \\text{ ጁል}$ ይሆናል፤ መልሱ ሀ) ነው።`;
-      } else {
+        explanationAmh = `ማብራሪያ፡ የእንቅስቃሴ ኃይል (Kinetic Energy) ፎርሙላ $KE = \\frac{1}{2}mv^2$ ነው። $KE = 0.5 \\times ${mass} \\times 9 = ${ke} \\text{ ጁል}$ ይሆናል።`;
+      } else if (physType === 3) {
         // Gravity Potential Energy
-        const mass = c1;
+        const mass = seed1;
         const h = 10;
         const pe = mass * 9.8 * h;
         q = `An object of mass $${mass} \\text{ kg}$ is lifted to a height of $10 \\text{ meters}$ above the ground. Determine its potential energy ($g = 9.8 \\text{ m/s}^2$).`;
@@ -415,18 +491,106 @@ function generateProceduralMCQs(subject: string, grade: number, count: number): 
         ];
         answerIndex = 1;
         explanation = `Potential Energy is given by $PE = mgh = ${mass} \\times 9.8 \\times 10 = ${pe.toFixed(1)} \\text{ Joules}$.`;
-        explanationAmh = `ማብራሪያ፡ የቁመት አቅም ኃይል ፎርሙላ $PE = mgh$ ነው። ዋጋዎችን ስንተካ፡ $PE = ${mass} \\times 9.8 \\times 10 = ${pe.toFixed(1)} \\text{ ጁል}$ ይሆናል፤ መልሱ ለ) ነው።`;
+        explanationAmh = `ማብራሪያ፡ የቁመት አቅም ኃይል ፎርሙላ $PE = mgh$ ነው። ዋጋዎችን ስንተካ፡ $PE = ${mass} \\times 9.8 \\times 10 = ${pe.toFixed(1)} \\text{ ጁል}$ ይሆናል።`;
+      } else if (physType === 4) {
+        // Ohm's law with Parallel Resistors
+        const r1 = seed1 * 2;
+        const r2 = seed1 * 2; // Equal for easy clean math
+        const req = r1 / 2;
+        q = `A circuit contains two resistors $R_1 = ${r1}\\Omega$ and $R_2 = ${r2}\\Omega$ connected in parallel. What is the equivalent resistance of the circuit?`;
+        qAmh = `አንድ የኤሌክትሪክ መስመር በውስጡ ባለ ሁለት ትይዩ ተቃዋሚዎች $R_1 = ${r1}\\Omega$ እና $R_2 = ${r2}\\Omega$ ቢኖረው ጠቅላላ ተቃውሞአቸው (Equivalent Resistance) ስንት ይሆናል?`;
+        options = [
+          `a) ${req} Ohm`,
+          `b) ${r1 + r2} Ohm`,
+          `c) ${(req * 1.5).toFixed(1)} Ohm`,
+          `d) 0`
+        ];
+        optionsAmh = [
+          `ሀ) ${req} Ohm`,
+          `ለ) ${r1 + r2} Ohm`,
+          `ሐ) ${(req * 1.5).toFixed(1)} Ohm`,
+          `መ) 0`
+        ];
+        answerIndex = 0;
+        explanation = `For parallel resistors, $1/R_{eq} = 1/R_1 + 1/R_2$. Here, $1/R_{eq} = 1/${r1} + 1/${r1} = 2/${r1} \\Rightarrow R_{eq} = ${req}\\Omega$.`;
+        explanationAmh = `ማብራሪያ፡ ለትይዩ ተቃዋሚዎች ቀመሩ $1/R_{eq} = 1/R_1 + 1/R_2$ ነው። ተመሳሳይ ስለሆኑ $R_{eq} = ${r1}/2 = ${req}\\Omega$ እናገኛለን።`;
+      } else if (physType === 5) {
+        // Carnot engine efficiency
+        const tHot = seed3 * 20;
+        const tCold = seed3 * 10;
+        const eff = (1 - tCold / tHot) * 100;
+        q = `A Carnot heat engine operates between hot reservoir at $T_H = ${tHot}\\text{ K}$ and cold reservoir at $T_C = ${tCold}\\text{ K}$. What is its thermal efficiency?`;
+        qAmh = `የካርኖት ማሽን በሞቃት $T_H = ${tHot}\\text{ K}$ እና ቀዝቃዛ $T_C = ${tCold}\\text{ K}$ የሙቀት ማጠራቀሚያዎች መሃል እየሰራ ቢሆን የሚያመነጨው የሙቀት ብቃት (efficiency) ስንት ፐርሰንት ነው?`;
+        options = [
+          `a) ${(eff - 10).toFixed(0)}%`,
+          `b) ${eff.toFixed(0)}%`,
+          `c) ${(eff + 15).toFixed(0)}%`,
+          `d) 100%`
+        ];
+        optionsAmh = [
+          `ሀ) ${(eff - 10).toFixed(0)}%`,
+          `ለ) ${eff.toFixed(0)}%`,
+          `ሐ) ${(eff + 15).toFixed(0)}%`,
+          `መ) 100%`
+        ];
+        answerIndex = 1;
+        explanation = `Efficiency of a Carnot heat engine is calculated as $\\eta = (1 - \\frac{T_C}{T_H}) \\times 100 = (1 - \\frac{${tCold}}{${tHot}}) \\times 100 = ${eff.toFixed(0)}\\%$.`;
+        explanationAmh = `ማብራሪያ፡ የካርኖት ማሽን ብቃት ፎርሙላ $\\eta = (1 - T_C/T_H) \\times 100$ ነው። ዋጋዎችን ስንተካ $\\eta = (1 - 1/2) \\times 100 = 50\\%$ ወይም ${eff.toFixed(0)}\\%$ ይመጣል።`;
+      } else if (physType === 6) {
+        // Physics Waves sound Speed frequency
+        const freq = seed4;
+        const wl = 2;
+        const vel = freq * wl;
+        q = `An acoustic sound wave has a wavelength of $2.0 \\text{ m}$ and frequency of $${freq} \\text{ Hz}$. What is the speed of sound wavetrain?`;
+        qAmh = `አንድ የድምፅ ማዕበል ሞገድ-ርዝመት $2.0 \\text{ ሜትር}$ እና ድግግሞሽ (frequency) $${freq} \\text{ Hz}$ ቢኖረው፣ የድምፅ ማዕበሉ ፍጥነት ስንት ነው?`;
+        options = [
+          `a) ${vel} m/s`,
+          `b) ${vel / 2} m/s`,
+          `c) ${vel + 100} m/s`,
+          `d) 340 m/s`
+        ];
+        optionsAmh = [
+          `ሀ) ${vel} ሜ/ሴ`,
+          `ለ) ${vel / 2} ሜ/ሴ`,
+          `ሐ) ${vel + 100} ሜ/ሴ`,
+          `መ) 340 ሜ/ሴ`
+        ];
+        answerIndex = 0;
+        explanation = `Wave velocity is calculated using the formula $v = f \\lambda = ${freq} \\text{ Hz} \\times 2.0 \\text{ m} = ${vel} \\text{ m/s}$.`;
+        explanationAmh = `ማብራሪያ፡ ማዕበል ፍጥነት ፎርሙላ $v = f \\lambda$ ነው። እሴቶችን ስናባዛ $v = ${freq} \\times 2.0 = ${vel} \\text{ ሜ/ሴ}$ እናገኛለን።`;
+      } else {
+        // Photoelectric effect
+        const workFunc = 2.0;
+        const photonE = 2.0 + seed1 * 0.5;
+        const maxKE = photonE - workFunc;
+        q = `Monochromatic photons of energy $${photonE.toFixed(1)} \\text{ eV}$ hit a cesium metal target (work function $\\Phi = 2.0 \\text{ eV}$). Determine the maximum kinetic energy of the emitted photoelectrons.`;
+        qAmh = `የፎቶን ኃይል $${photonE.toFixed(1)} \\text{ eV}$ የሆነ ጨረር በሴሲየም ብረት (work function $\\Phi = 2.0 \\text{ eV}$) ላይ ቢያርፍ ተፈንጥረው የሚወጡት ኤሌክትሮኖች ከፍተኛ እንቅሰቃሴ ኃይል (Max KE) ስንት ይሆናል?`;
+        options = [
+          `a) ${(maxKE * 1.5).toFixed(1)} eV`,
+          `b) ${maxKE.toFixed(1)} eV`,
+          `c) ${(maxKE + 1.2).toFixed(1)} eV`,
+          `d) 0 eV`
+        ];
+        optionsAmh = [
+          `ሀ) ${(maxKE * 1.5).toFixed(1)} eV`,
+          `ለ) ${maxKE.toFixed(1)} eV`,
+          `ሐ) ${(maxKE + 1.2).toFixed(1)} eV`,
+          `መ) 0 eV`
+        ];
+        answerIndex = 1;
+        explanation = `By Einstein's Photoelectric Equation: $KE_{max} = hf - \\Phi = E - \\Phi = ${photonE.toFixed(1)} - 2.0 = ${maxKE.toFixed(1)} \\text{ eV}$.`;
+        explanationAmh = `ማብራሪያ፡ በታዋቂው የአንስታይን ፎቶኤሌክትሪክ እኩልታ መሠረት፡ $KE_{max} = E - \\Phi = ${photonE.toFixed(1)} - 2.0 = ${maxKE.toFixed(1)} \\text{ eV}$ ይሆናል፤ መልሱ ለ) ነው።`;
       }
-    } else if (subject.toLowerCase().includes("chem")) {
+    } else if (subL.includes("chem")) {
       stream = "Natural Science";
-      const chemType = i % 3;
+      const chemType = i % 6;
       if (chemType === 0) {
         // Molarity
-        const moles = c1;
+        const moles = seed1;
         const vol = 2;
         const molarity = moles / vol;
-        q = `Calculate the molarity of a solution created by dissolving $${moles} \\text{ moles}$ of solute in enough water to make $2.0 \\text{ Liters}$ of solution.`;
-        qAmh = `$${moles} \\text{ ሞል}$ የሚሟሟ ንጥር በ $2.0 \\text{ ሊትር}$ ውህድ ውስጥ ቢሟሟ የውህዱ ሞላሪቲ (Molarity) ስንት ይሆናል?`;
+        q = `Calculate the molarity of an aqueous solution made by dissolving $${moles} \\text{ moles}$ of chemical compound in enough distilled water to achieve a total volume of $2.0 \\text{ Liters}$.`;
+        qAmh = `$${moles} \\text{ ሞል}$ የሚሟሟ ኬሚካል በ $2.0 \\text{ ሊትር}$ ንጹህ ውሃ ውህድ ውስጥ ቢሟሟ የውህዱ ሞላሪቲ (Molarity) ስንት ይሆናል?`;
         options = [
           `a) ${molarity.toFixed(2)} M`,
           `b) ${(molarity * 1.8).toFixed(2)} M`,
@@ -444,7 +608,7 @@ function generateProceduralMCQs(subject: string, grade: number, count: number): 
         explanationAmh = `ማብራሪያ፡ ሞላሪቲ ማለት የአንድ ውህድ ቁጥር ሞል ሲካፈል ለሊትር ይዘቱ ($M = n / V$) ነው። እዚህ $M = ${moles} / 2.0 = ${molarity.toFixed(2)} \\text{ M}$ ይሆናል፤ መልሱ ሀ) ነው።`;
       } else if (chemType === 1) {
         // pH from H3O+
-        const expo = c1 > 10 ? 7 : c1;
+        const expo = seed2 > 10 ? 7 : seed2;
         q = `Determine the pH of an aqueous solution with a hydronium ion concentration $[H_3O^+] = 1.0 \\times 10^{-${expo}} \\text{ M}$.`;
         qAmh = `የሃይድሮኒየም አዮን ክምችት $[H_3O^+] = 1.0 \\times 10^{-${expo}} \\text{ M}$ የሆነው የውሃማ ስብስብ ፒኤች (pH) ዋጋ ስንት ነው?`;
         options = [
@@ -462,11 +626,11 @@ function generateProceduralMCQs(subject: string, grade: number, count: number): 
         answerIndex = 1;
         explanation = `pH is the negative logarithm of the hydronium concentration: $pH = -\\log[H_3O^+] = -\\log(1.0 \\times 10^{-${expo}}) = ${expo}$.`;
         explanationAmh = `ማብራሪያ፡ ፒኤች (pH) የሚሰላው በአዮን ክምችቱ ኔጋቲቭ ሌጋሪዝም ሲሆን $pH = -\\log(10^{-${expo}}) = ${expo}$ ይሆናል። መልሱ ለ) ነው።`;
-      } else {
+      } else if (chemType === 2) {
         // Ideal Gas
         const n = 2;
         const t = 300;
-        const v = c1;
+        const v = seed1;
         const p = (n * 0.0821 * t) / v;
         q = `A $2.0 \\text{ mole}$ sample of ideal gas is kept in a fixed container of volume $${v} \\text{ L}$ at a temperature of $300 \\text{ K}$. What is the pressure of the gas? ($R = 0.0821 \\text{ L}\\cdot\\text{atm}/\\text{mol}\\cdot\\text{K}$)`;
         qAmh = `$2.0 \\text{ ሞል}$ መጠን ያለው ጋዝ በ $${v} \\text{ ሊትር}$ ጠርሙስ ውስጥ $300 \\text{ K}$ ሙቀት ላይ ተቀምጧል። የጋዙን ግፊት (Pressure) አስላ?`;
@@ -485,10 +649,76 @@ function generateProceduralMCQs(subject: string, grade: number, count: number): 
         answerIndex = 0;
         explanation = `Using the ideal gas equation $PV = nRT \\Rightarrow P = \\frac{nRT}{V}$: $P = \\frac{2.0 \\times 0.0821 \\times 300}{${v}} = ${p.toFixed(2)} \\text{ atm}$.`;
         explanationAmh = `ማብራሪያ፡ የጋዝ እኩልታ $PV = nRT$ ሲሆን ግፊት $P = nRT/V$ ነው። $P = 2.0 \\times 0.0821 \\times 300 / ${v} = ${p.toFixed(2)} \\text{ atm}$ ይሆናል።`;
+      } else if (chemType === 3) {
+        // Dilutions
+        const m1 = seed2;
+        const v1 = 50;
+        const v2 = 250;
+        const m2 = (m1 * v1) / v2;
+        q = `If ${student} dilutes $50.0 \\text{ mL}$ of a $${m1}.0 \\text{ M}$ stock solution to a final volume of $250.0 \\text{ mL}$, what is the molarity of the diluted solution?`;
+        qAmh = `${student} $50.0 \\text{ ሚሊሊትር}$ የ $${m1}.0 \\text{ M}$ ክምችት ውህድ ወስዶ ጠቅላላ ይዘቱን ወደ $250.0 \\text{ mL}$ ቢያሳድገው (ቢበረዘው) የውሃው አዲሱ ሞላሪቲ ስንት ይሆናል?`;
+        options = [
+          `a) ${m2.toFixed(2)} M`,
+          `b) ${(m2 * 2).toFixed(2)} M`,
+          `c) ${(m2 * 0.4).toFixed(2)} M`,
+          `d) 1.00 M`
+        ];
+        optionsAmh = [
+          `ሀ) ${m2.toFixed(2)} M`,
+          `ለ) ${(m2 * 2).toFixed(2)} M`,
+          `ሐ) ${(m2 * 0.4).toFixed(2)} M`,
+          `መ) 1.00 M`
+        ];
+        answerIndex = 0;
+        explanation = `Using the dilution equation $M_1 V_1 = M_2 V_2 \\Rightarrow M_2 = \\frac{M_1 V_1}{V_2}$: $M_2 = \\frac{${m1} \\times 50.0}{250.0} = ${m2.toFixed(2)} \\text{ M}$.`;
+        explanationAmh = `ማብራሪያ፡ የማቅጠኛ ፎርሙላ $M_1 V_1 = M_2 V_2$ ነው። ዋጋዎችን ስናሰላ $M_2 = ${m1} \\times 50 / 250 = ${m2.toFixed(2)} \\text{ M}$ እናገኛለን።`;
+      } else if (chemType === 4) {
+        // pH to pOH
+        const phVal = seed1 > 11 ? 9 : seed1;
+        const pohVal = 14 - phVal;
+        q = `An aqueous solution has a measured pH of $${phVal}$. What is the pOH value of this solution at $25^\\circ\\text{C}$?`;
+        qAmh = `አንድ የውሃማ ፈሳሽ ፒኤች (pH) ዋጋ $${phVal}$ ሆኖ ቢለካ pOH ዋጋው በ $25^\\circ\\text{C}$ የሙቀት ክፍል ስንት ይሆናል?`;
+        options = [
+          `a) ${pohVal - 2}`,
+          `b) 7.0`,
+          `c) ${pohVal}`,
+          `d) ${14 + phVal}`
+        ];
+        optionsAmh = [
+          `ሀ) ${pohVal - 2}`,
+          `ለ) 7.0`,
+          `ሐ) ${pohVal}`,
+          `መ) ${14 + phVal}`
+        ];
+        answerIndex = 2;
+        explanation = `At $25^\\circ\\text{C}$, the relationship between pH and pOH is given by $pH + pOH = 14$. Thus, $pOH = 14 - pH = 14 - ${phVal} = ${pohVal}$.`;
+        explanationAmh = `ማብራሪያ፡ ፈሳሾች በክፍል ሙቀት $pH + pOH = 14$ ይሰጣሉ። pOH ለማግኘት $14 - ${phVal} = ${pohVal}$ ይሆናል።`;
+      } else {
+        // Galvanic Cell potential
+        const cath = 0.80; // Silver cathode
+        const anod = -0.76; // Zinc anode
+        const cellP = cath - anod;
+        q = `Calculate the standard cell potential ($E^\\circ_{cell}$) for a galvanic cell consisting of a Silver electrode ($E^\\circ_{red} = +0.80 \\text{ V}$) and a Zinc electrode ($E^\\circ_{red} = -0.76 \\text{ V}$).`;
+        qAmh = `የብር ኤሌክትሮድ ($E^\\circ_{red} = +0.80 \\text{ V}$) እና የዚንክ ኤሌክትሮድ ($E^\\circ_{red} = -0.76 \\text{ V}$) የያዘ የጋልቫኒክ ባትሪ ጠቅላላ የቮልቴጅ ኃይል ($E^\\circ_{cell}$) ስንት ነው?`;
+        options = [
+          `a) 0.04 V`,
+          `b) ${cellP.toFixed(2)} V`,
+          `c) -1.56 V`,
+          `d) 1.10 V`
+        ];
+        optionsAmh = [
+          `ሀ) 0.04 V`,
+          `ለ) ${cellP.toFixed(2)} V`,
+          `ሐ) -1.56 V`,
+          `መ) 1.10 V`
+        ];
+        answerIndex = 1;
+        explanation = `The standard cell potential is calculated as $E^\\circ_{cell} = E^\circ_{cathode} - E^\circ_{anode} = 0.80 \\text{ V} - (-0.76 \\text{ V}) = +1.56 \\text{ V}$.`;
+        explanationAmh = `ማብራሪያ፡ የባትሪ ቮልቴጅ $E_{cell} = E_{cathode} - E_{anode}$ ነው። እሴቶችን ስናስገባ $E_{cell} = 0.80 - (-0.76) = 1.56 \\text{ ቮልት}$ ይመጣል፤ ትክክለኛው መልስ ለ) ነው።`;
       }
-    } else if (subject.toLowerCase().includes("biol")) {
+    } else if (subL.includes("biol") || subL.includes("bio")) {
       stream = "Natural Science";
-      const bioType = i % 3;
+      const bioType = i % 5;
       if (bioType === 0) {
         q = "Which of the following organic cell organelles is primarily responsible for synthesis of ATP (Cellular respiration)?";
         qAmh = "ከሚከተሉት የሴል ክፍሎች ውስጥ ዋነኛው የኤቲፒ (ATP - የሴል የመተንፈስ ኃይል) ማምረቻ የቱ ነው?";
@@ -498,14 +728,14 @@ function generateProceduralMCQs(subject: string, grade: number, count: number): 
         explanation = "Mitochondria are known as the powerhouses of the cell because they execute cellular aerobic respiration to synthesize ATP (adenosine triphosphate) which fuels cellular operations.";
         explanationAmh = "ማብራሪያ፡- ማይቶኮንድሪያ (Mitochondria) የሴሉ የሃይል ማመንጫ ተብለው ይጠራሉ። በኦክስጅን በመጠቀም ኤቲፒ ያመርታሉ።";
       } else if (bioType === 1) {
-        q = "In genetics, if a heterozygous round pea plant (Rr) is selfed, what is the expected phenotypic ratio of Round to Wrinkled seeds in the offspring?";
-        qAmh = "በጄኔቲክስ ሁለገብ የሆነ የክብ አተር ተክል (Rr) ራሱን በራሱ ቢያዳቅል በደቀናቸው ላይ ክብ ከኮማታዘር ጋር የሚኖረው መጠን እንዴት ይሆናል?";
+        q = `In genetics, if ${student} crosses a heterozygous round pea plant (Rr) with another heterozygous plant, what is the expected phenotypic ratio of Round to Wrinkled seeds?`;
+        qAmh = `በጄኔቲክስ ${student} በሁለገብ የክብ አተር ተክል (Rr) እና በሌላ (Rr) መካከል ማዳቀል ቢያደርግ፣ ክብ ከኮማታዘር ጋር የሚኖረው መጠን (phenotypic ratio) እንዴት ይሆናል?`;
         options = ["a) 3:1", "b) 1:1", "c) 9:3:3:1", "d) 1:2:1"];
         optionsAmh = ["ሀ) 3:1", "ለ) 1:1", "ሐ) 9:3:3:1", "መ) 1:2:1"];
         answerIndex = 0;
         explanation = "A monohybrid cross of Rr x Rr produces offspring genotypes: 1 RR (round), 2 Rr (round), and 1 rr (wrinkled). Thus, the phenotypic ratio is 3 round to 1 wrinkled (3:1).";
         explanationAmh = "ማብራሪያ፡- Rr ከ Rr ጋር ሲዳቀል 1 RR, 2 Rr, እና 1 rr ይሰጣል። ክብ የሆኑት 3 ሲሆኑ ኮማታ የሆነው 1 ነው (3:1)።";
-      } else {
+      } else if (bioType === 2) {
         q = "Which blood vessel type carries highly oxygenated blood away from the heart to general system organs?";
         qAmh = "ኦክስጅን የበለጸገበትን ደም ከልብ ወደተለያዩ የሰውነት ክፍሎች የሚወስደው የደም ቧንቧ የቱ ነው?";
         options = ["a) Veins", "b) Capillaries", "c) Arteries", "d) Venules"];
@@ -513,10 +743,39 @@ function generateProceduralMCQs(subject: string, grade: number, count: number): 
         answerIndex = 2;
         explanation = "Arteries carry oxygen-rich blood away from the heart to systemic capillaries (with the exception of pulmonary arteries).";
         explanationAmh = "ማብራሪያ፡- አርተሪዎች (Arteries - ደም ወሳጅ ቧንቧዎች) ኦክስጅን ያለውን ቀይ ደም ከልብ ወደ መላ ሰውነት ያጓጉዛሉ።";
+      } else if (bioType === 3) {
+        q = "Which human endocrine hormone secreted by the beta cells of the pancreas is vital for lowering blood glucose levels?";
+        qAmh = "በቆሽት ቤታ ሴሎች የሚመነጨውና በደም ውስጥ የኮሌስትሮል/ስኳር መጠንን ለመቀነስ የሚረዳው ሆርሞን የቱ ነው?";
+        options = ["a) Glucagon", "b) Adrenaline", "c) Insulin", "d) Thyroxine"];
+        optionsAmh = ["ሀ) ግሉካጎን", "ለ) አድሬናሊን", "ሐ) ኢንሱሊን", "መ) ታይሮክሲን"];
+        answerIndex = 2;
+        explanation = "Insulin is secreted by pancreatic beta cells to increase cellular glucose uptake, thereby lowering the concentration of sugar in the blood.";
+        explanationAmh = "ማብራሪያ፡- ኢንሱሊን በደም ውስጥ የሚገኝ ትርፍ ግሉኮስ ወደ ሴሎች እንዲገባ በማመቻቸት የስኳር መጠንን ይቆጣጠራል።";
+      } else {
+        // Trophic levels 10% law
+        const originalLoss = seed1 * 1000;
+        const remaining = originalLoss * 0.10;
+        q = `According to the ecological 10% rule of energy transfer, if primary producers contain $${originalLoss} \\text{ kcal}$ of energy, how much energy is captured by primary consumers?`;
+        qAmh = `በስነ-ምህዳሩ የ10% የጉልበት/ኃይል ማስተላለፍ ህግ መሠረት፣ እፅዋት (producers) $${originalLoss} \\text{ kcal}$ ሃይል ቢኖራቸው፣ ለበይነ-እፅዋት (primary consumers) የሚተላለፈው ኃይል ምን ያህል ነው?`;
+        options = [
+          `a) ${remaining} kcal`,
+          `b) ${originalLoss * 0.5} kcal`,
+          `c) ${remaining * 0.1} kcal`,
+          `d) 0 kcal`
+        ];
+        optionsAmh = [
+          `ሀ) ${remaining} kcal`,
+          `ለ) ${originalLoss * 0.5} kcal`,
+          `ሐ) ${remaining * 0.1} kcal`,
+          `መ) 0 kcal`
+        ];
+        answerIndex = 0;
+        explanation = "The 10% law stating that only 10% of energy is transferred from one food chain level to the next means primary consumers get $0.10 \\times " + originalLoss + " = " + remaining + "\\text{ kcal}$.";
+        explanationAmh = "ማብራሪያ፡ በስነ-ምህዳር ህግ እያንዳንዱ ደረጃ ላይ ጉልበት ሲሸጋገር 90 በመቶው ይባክንና 10 በመቶው ብቻ ይተላለፋል፤ ስለዚህ " + originalLoss + " በ 10% ስናባዛ መልሱ " + remaining + " kcal ይሆናል፤ መልሱ ሀ) ነው።";
       }
-    } else if (subject.toLowerCase().includes("hist")) {
+    } else if (subL.includes("hist")) {
       stream = "Social Science";
-      const histType = i % 3;
+      const histType = i % 5;
       if (histType === 0) {
         q = "Under which legendary Aksumite leader was Christianity adopted as the official state religion of Ethiopia in the 4th century AD?";
         qAmh = "በ4ኛው ክፍለ ዘመን ክርስትናን የኢትዮጵያ መንግሥት ይፋዊ ሃይማኖት አድርጎ የተቀበለው ታዋቂው የአክሱም ንጉሥ ማን ይባላል?";
@@ -543,7 +802,7 @@ function generateProceduralMCQs(subject: string, grade: number, count: number): 
         answerIndex = 0;
         explanation = "The Battle of Adwa was won on Yekatit 23, 1888 Ethiopian Calendar (March 1, 1896 Gregorial Calendar), led by Emperor Menelik II and Empress Taytu Betul.";
         explanationAmh = "ማብራሪያ፡- የዓድዋ ጦርነት ተካሂዶ የኢትዮጵያ ድል የተመዘገበው የካቲት 23 ቀን 1888 ዓ.ም ነው።";
-      } else {
+      } else if (histType === 2) {
         q = "Who was the architect emperor of the Gondarine period responsible for the majestic royal castles of Fasil Ghebbi built in 1636?";
         qAmh = "በየነጋሲው የተለያዩ ድንቅ ግንቦችን በመገንባት በ1636 የጎንደር ፋሲል ግቢን የቆረቆሩት ዋናው ንጉሠ ነገሥት ማን ናቸው?";
         options = ["a) Emperor Yohannes I", "b) Emperor Fasilides", "c) Emperor Iyasu I", "d) Emperor Bakaffa"];
@@ -551,21 +810,212 @@ function generateProceduralMCQs(subject: string, grade: number, count: number): 
         answerIndex = 1;
         explanation = "Emperor Fasilides declared Gondar the permanent administrative capital of the Ethiopian empire in 1636 and laid down the historic Fasil Castle complex.";
         explanationAmh = "ማብራሪያ፡- አጼ ፋሲለደስ በጎንደር የመንግስታቸውን መቀመጫ አድርገው አስደናቂውን ፋሲል ግቢ በመስራት ባለውለታ ሆኑ።";
-      }
-    } else if (subject.toLowerCase().includes("geog")) {
-      stream = "Social Science";
-      const geogType = i % 3;
-      if (geogType === 0) {
-        q = "If a topographical map has a scale representation of 1:50,000, what actual real-world distance is represented by a 4-centimeter line drawn on the map?";
-        qAmh = "የካርታው ስኬል (Scale) 1:50,000 ቢሆን፣ በካርታው ላይ 4 ሴንቲሜትር የተሰመረው መስመር በመሬት ላይ ያለውን ስንት እውነተኛ ርቀት ይወክላል?";
-        options = ["a) 2 kilometers", "b) 20 kilometers", "c) 5 kilometers", "d) 200 meters"];
-        optionsAmh = ["ሀ) 2 ኪሎሜትር", "ለ) 20 ኪሎሜትር", "ሐ) 5 ኪሎሜትር", "መ) 200 ሜትር"];
+      } else if (histType === 3) {
+        q = `The deceptive Article XVII of the Wuchale Treaty in 1889 between Emperor Menelik II and Italy was the spark for the Adwa campaign. Explain the linguistic discrepancy.`;
+        qAmh = `በአጼ ምኒልክ እና በጣሊያን መካከል የተፈረመው የውጫሌ ውል አንቀጽ 17 አለመግባባት የዓድዋ ዘመቻ መንስኤ ነበር። የቋንቋ ልዩነቱ ምን ነበር?`;
+        options = [
+          "a) The Amharic version made foreign relations optional, while Italian version made it mandatory.",
+          "b) Italian version offered financial aid, while Amharic demanded taxes.",
+          "c) Amharic version ceded Adwa, while Italian version ceded Eritrea.",
+          "d) They were identical but Italy violated it."
+        ];
+        optionsAmh = [
+          "ሀ) በአማርኛው ወደ ውጭ ሃገር መገናኘት 'ከተፈለገ በጣሊያን በኩል መሆን ይችላል' ሲል፣ በጣሊያንኛው ግን 'ግዴታ ነው' እያለ የሞግዚትነት ጥያቄ ስላቀረበ።",
+          "ለ) የጣሊያንኛው የገንዘብ እርዳታን ሲያቀርብ የአማርኛው ግን ግብር ጠየቀ።",
+          "ሐ) አማርኛው ዓድዋን ሲያስረክብ ጣሊያንኛው ግን ኤርትራን ሻረ።",
+          "መ) ሁለቱም እኩል ነበሩ ግን ጣልያን ጥሰት ፈጸመች።"
+        ];
         answerIndex = 0;
-        explanation = "At a scale of 1:50,000, $1\\text{ cm} = 50,000\\text{ cm} = 500\\text{ meters}$. Thus, $4\\text{ cm}$ on the map represents $4 \\times 500 = 2000\\text{ meters} = 2\\text{ kilometers}$ on the ground.";
-        explanationAmh = "ማብራሪያ፡- ስኬሉ 1:50,000 ማለት 1 ሴ.ሜ 50,000 ሴ.ሜ (ወይም 500 ሜትር) ማለት ነው። ስለዚህ 4 ሴ.ሜ ስናባዛ ከ 500 ሜትር ጋር 2000 ሜትር (2 ኪሎሜትር) እናገኛለን።";
+        explanation = "Article XVII discrepancy: The Amharic text suggested Ethiopia 'could' use Italy's foreign channels, whereas the Italian text bound Ethiopia to conduct all foreign affairs 'only' through Rome, declaring her a protectorate.";
+        explanationAmh = "ማብራሪያ፡- የውጫሌ ውል አንቀጽ 17 አማርኛው 'መጠቀም ይቻላል' ሲል፣ የጣሊያንኛው ግን የኢትዮጵያን ነፃነት የሚጋፋ 'ግዴታ' ፈጠረ።";
+      } else {
+        q = "In 1270, the Zagwe Dynasty was overthrown and replaced by the restored Solomonic Dynasty under which monarch?";
+        qAmh = "በ1270 ዓ.ም የዛግዌ ሥርወ-መንግሥት በጦርነት ተሸንፎ የሰለሞናዊው ሥርወ-መንግሥት የተተካው በየትኛው ታዋቂ ንጉሥ አማካኝነት ነው?";
+        options = ["a) Yekuno Amlak", "b) Amda Seyon I", "c) Lalibela", "d) Yekuno Dawit"];
+        optionsAmh = ["ሀ) ይኩኖ አምላክ", "ለ) ዓምደ ጽዮን ቀዳማዊ", "ሐ) ላሊበላ", "መ) ይኩኖ ዳዊት"];
+        answerIndex = 0;
+        explanation = "King Yekuno Amlak defeated the last Zagwe king, Yetbarak, in 1270 AD and claimed restoration of the Solomonic line from Aksum.";
+        explanationAmh = "ማብራሪያ፡- ይኩኖ አምላክ በ1270 ዓ.ም የሰለሞናውያን የዘር ሃረግን መሠረት በማድረግ መንግስቱን መልሶ መሠረተ።";
+      }
+    } else if (subL.includes("geog")) {
+      stream = "Social Science";
+      const geogType = i % 5;
+      if (geogType === 0) {
+        // Representative map scale
+        const mapCm = seed1;
+        const scaleRF = 50000;
+        const gDistanceKm = (mapCm * scaleRF) / 100000;
+        q = `If a topographical map has a scale representation of 1:50,000, what actual real-world distance is represented by a $${mapCm}\\text{-centimeter}$ line drawn on the map?`;
+        qAmh = `የካርታው ስኬል (Scale) 1:50,000 ቢሆን፣ በካርታው ላይ $${mapCm}$ ሴንቲሜትር የተሰመረው መስመር በመሬት ላይ ያለውን ስንት እውነተኛ ርቀት (በኪሎሜትር) ይወክላል?`;
+        options = [
+          `a) ${gDistanceKm} kilometers`,
+          `b) ${gDistanceKm * 10} kilometers`,
+          `c) ${gDistanceKm + 5} kilometers`,
+          `d) ${mapCm * 5} meters`
+        ];
+        optionsAmh = [
+          `ሀ) ${gDistanceKm} ኪሎሜትር`,
+          `ለ) ${gDistanceKm * 10} ኪሎሜትር`,
+          `ሐ) ${gDistanceKm + 5} ኪሎሜትር`,
+          `መ) ${mapCm * 5} ሜትር`
+        ];
+        answerIndex = 0;
+        explanation = "At a scale of 1:50,000, 1 cm on map = 50,000 cm = 500 meters of ground distance. Thus, " + mapCm + " cm = " + (mapCm * 500) + " meters = " + gDistanceKm + " kilometers.";
+        explanationAmh = "ማብራሪያ፡ የካርታው ሬሾ 1:50,000 ማለት 1 ሴ.ሜ ለመሬት 500 ሜትር ማለት ነው። ስለዚህ " + mapCm + " ሴ.ሜ ማለት " + mapCm + " x 500 = " + (mapCm * 500) + " ሜትር (ወይም " + gDistanceKm + " ኪ.ሜ) ነው።";
       } else if (geogType === 1) {
         q = "Which of the following tectonic water bodies is the largest and deepest natural freshwater lake located within the Ethiopian Rift Valley basin?";
         qAmh = "በኢትዮጵያ ስምጥ ሸለቆ ውስጥ ከሚገኙት ተፈጥሮአዊ ሐይቆች መካከል ትልቁና ጥልቀት ያለው የንጹህ ውሃ ሐይቅ የቱ ነው?";
+        options = ["a) Lake Tana", "b) Lake Abaya", "c) Lake Awassa", "d) Lake Chamo"];
+        optionsAmh = ["ሀ) ጣና ሐይቅ (ስምጥ ሸለቆ ውጪ)", "ለ) አባያ ሐይቅ", "ሐ) አዋሳ ሐይቅ", "መ) ጫሞ ሐይቅ"];
+        answerIndex = 1;
+        explanation = "Lake Abaya is the largest lake inside the Ethiopian Rift Valley basin with a surface area of over 1,160 square kilometers. Lake Tana is the largest lake in Ethiopia but lies on the highlands outside the Rift Valley.";
+        explanationAmh = "ማብራሪያ፡- በአጠቃላይ ጣና ትልቁ ቢሆንም፣ በስምጥ ሸለቆ ባሲን ውስጥ የሚገኘው ትልቁ ሃይቅ አባያ ሃይቅ ነው።";
+      } else if (geogType === 2) {
+        q = "What is the primary cause for the majestic, rugged topography of Ethiopia, featuring deep gorges, high peaks, and rolling plateaus?";
+        qAmh = "ለኢትዮጵያ ተራራማ፣ ወጣ ገባ እና ታላላቅ ሸለቆዎች ላሏት መልክዓ-ምድር ዋነኛው ተፈጥሮአዊ ምክንያት ምንድን ነው?";
+        options = [
+          "a) Severe wind erosion over billions of years",
+          "b) Intense volcanic activities and block faults in the Cenozoic era",
+          "c) Desertification and sand movement",
+          "d) Ocean tides and lunar cycle"
+        ];
+        optionsAmh = [
+          "ሀ) የንፋስ መሸርሸር",
+          "ለ) በሴኖዞይክ ዘመን የነበሩ የፈነዱ እሳተ-ገሞራዎችና የስምጥ ስምጥ መፈጠር (Eruption/Faulting)",
+          "ሐ) የበረሀማነት መስፋፋት",
+          "መ) የባህር ሞገድ ተጽዕኖ"
+        ];
+        answerIndex = 1;
+        explanation = "The majestic, rugged topography is a direct product of the Cenozoic era's massive basaltic volcanic lava flows, coupled with subsequently shaped uplift and extreme deep river dissection (gorge erosion).";
+        explanationAmh = "ማብራሪያ፡- የኢትዮጵያ ወጣገባና ውብ መልክዓ ምድር የተፈጠረው በሴኖዞይክ ዘመን (Cenozoic) የነበሩ እሳተ ገሞራዎች በረጩት ላቫና በስምጥ መከሰት ምክንያት ነው።";
+      } else if (geogType === 3) {
+        // Temperature lapse rate
+        const elevationM = 1000 + seed1 * 100;
+        const tempAtSea = 30.0;
+        const tempAtElev = tempAtSea - (elevationM / 100) * 0.6;
+        q = `If the temperature at sea level (0 meters) is measured at $30.0^\\circ\\text{C}$, estimate the temperature at an altitude of $${elevationM} \\text{ meters}$ in the Ethiopian highlands using the standard lapse rate ($-0.6^\\circ\\text{C}$ per $100$ meters).`;
+        qAmh = `ከባህር ጠለል (0 ሜትር) ላይ የሙቀት መጠን $30.0^\\circ\\text{C}$ ቢሆን፣ በኢትዮጵያ ከፍታማ ቦታ $${elevationM} \\text{ ሜትር}$ ላይ የሙቀት መጠኑ ስንት ይሆናል? (በየ 100 ሜትር $-0.6^\\circ\\text{C}$ የሙቀት መቀነስን ተጠቀም)`;
+        options = [
+          `a) ${tempAtElev.toFixed(1)}°C`,
+          `b) ${(tempAtElev + 4).toFixed(1)}°C`,
+          `c) ${(tempAtElev - 5).toFixed(1)}°C`,
+          `d) 0.0°C`
+        ];
+        optionsAmh = [
+          `ሀ) ${tempAtElev.toFixed(1)}°C`,
+          `ለ) ${(tempAtElev + 4).toFixed(1)}°C`,
+          `ሐ) ${(tempAtElev - 5).toFixed(1)}°C`,
+          `መ) 0.0°C`
+        ];
+        answerIndex = 0;
+        explanation = `The temperature decreases by $0.6^\\circ\\text{C}$ for every $100\\text{m}$. Decrease = $(${elevationM} / 100) \\times 0.6 = ${(elevationM / 100) * 0.6}^\\circ\\text{C}$. Final temperature = $30.0 - ${(elevationM / 100) * 0.6} = ${tempAtElev.toFixed(1)}^\\circ\\text{C}$.`;
+        explanationAmh = `ማብራሪያ፡ በየ100 ሜትሩ የ 0.6 ዲግሪ ሙቀት ስለሚቀንስ በ $${elevationM} \\text{ ሜትር}$ ላይ ያለው የማሽቆልቆል መጠን $${(elevationM / 100) * 0.6}^\\circ\\text{C}$ ነው። ስለዚህ 30.0 ሲቀነስ $${(elevationM / 100) * 0.6} = ${tempAtElev.toFixed(1)}^\\circ\\text{C}$ እናገኛለን።`;
+      } else {
+        q = "Which traditional Ethiopian climate / agro-ecological zone is situated at the highest altitude range (above 3,300 meters) with sparse frost-tolerant vegetation?";
+        qAmh = "ከባህር ጠለል በላይ ከፍተኛው ቦታ ላይ (ከ3,300 ሜትር በላይ) የሚገኘውና በጣም ቀዝቃዛ የሆነው የኢትዮጵያ ተፈጥሮአዊ የአየር ንብረት ክልል የቱ ነው?";
+        options = ["a) Wirch (Alpine cold)", "b) Kola (Hot arid)", "c) Dega (Cool humid)", "d) Woina Dega (Temperate)"];
+        optionsAmh = ["ሀ) ዉርጭ", "ለ) ቆላ", "ሐ) ደጋ", "መ) ወይና ደጋ"];
+        answerIndex = 0;
+        explanation = "Wirch is the highest climatic zone in Ethiopia, spanning altitudes above 3,300 meters, characterized by extremely low temperatures, frost, and specialized alp-like afroalpine vegetation.";
+        explanationAmh = "ማብራሪያ፡- 'ውርጭ' ከ 3300 ሜትር በላይ የሚገኝ የቅዝቃዜና ውርጭ ቀጠና ሲሆን፣ ቆላ ሞቃት ቀጠና ነው፤ ወይና ደጋ መካከለኛ ነው።";
+      }
+    } else {
+      // English / Syntax General
+      stream = "Both";
+      const engType = i % 4;
+      if (engType === 0) {
+        q = `By the time the secondary school principal arrives at our study hall tomorrow evening, ${student} and other VIP students ________ the full model exam.`;
+        qAmh = `የርዕሰ መምህሩ ነገ ማታ ወደ ጥናት ክፍሉ በሚመጡበት ሰዓት ${student} እና ሌሎች ተማሪዎች በሙሉ የሞዴል ፈተናውን _________።`;
+        options = [
+          "a) will have finished",
+          "b) are finishing",
+          "c) finished",
+          "d) would finish"
+        ];
+        optionsAmh = [
+          "ሀ) will have finished",
+          "ለ) are finishing",
+          "ሐ) finished",
+          "መ) would finish"
+        ];
+        answerIndex = 0;
+        explanation = "The phrase 'By the time...' referencing a future point ('tomorrow evening') requires the Future Perfect tense ('will have + past participle') because the action is expected to be fully completed before that reference point.";
+        explanationAmh = "ማብራሪያ፡- 'By the time...' ከነገ ማታ ጋር ሲመጣ የወደፊቱን የድርጊት መፈጸም ቀድሞ የሚገልጽ 'Future Perfect' (will have + v3) ይፈልጋል።";
+      } else if (engType === 1) {
+        q = "Choose the correct indirect speech form of: 'If you study hard, you will pass,' Naol said to Ezra.";
+        qAmh = "'በትጋት ካጠናህ ፈተናውን ታልፋለህ' ሲል ናኦል ለዕዝራ የተናገረውን ንግግር ወደ ቀጥተኛ ያልሆነ (Indirect speech) ቀይር።";
+        options = [
+          "a) Naol told Ezra that if he studied hard, he would pass.",
+          "b) Naol tells Ezra if he study hard, he will pass.",
+          "c) Naol asked Ezra if he had studied hard and passed.",
+          "d) Naol said that Ezra studies hard to pass."
+        ];
+        optionsAmh = [
+          "ሀ) Naol told Ezra that if he studied hard, he would pass.",
+          "ለ) Naol tells Ezra if he study hard, he will pass.",
+          "ሐ) Naol asked Ezra if he had studied hard and passed.",
+          "መ) Naol said that Ezra studies hard to pass."
+        ];
+        answerIndex = 0;
+        explanation = "When shifting from direct to reported speech, the present conditional clauses backshift: 'study' (present simple) becomes 'studied' (past simple), and 'will' becomes 'would'.";
+        explanationAmh = "ማብራሪያ፡- በቀጥተኛ ያልሆነ ንግግር ህግ መሠረት የአሁኑ ቴንስ (study) ወደ ያለፈ (studied) እና 'will' ደግሞ ወደ 'would' ይቀየራል።";
+      } else if (engType === 2) {
+        q = `Identify the correct conditional structure: "If ${student} ________ the necessary mock exams last semester, they would have scored higher."`;
+        qAmh = `ትክክለኛውን የኮንዲሽናል አረፍተ-ነገር ምረጥ፡ "If ${student} ________ the necessary mock exams last semester, they would have scored higher."`;
+        options = [
+          "a) had taken",
+          "b) took",
+          "c) will take",
+          "d) has taken"
+        ];
+        optionsAmh = [
+          "ሀ) had taken",
+          "ለ) took",
+          "ሐ) will take",
+          "መ) has taken"
+        ];
+        answerIndex = 0;
+        explanation = "This is a Type III conditional sentence representing an imaginary past condition. It requires 'had + past participle' (had taken) in the 'if' clause to match 'would have scored' in the main clause.";
+        explanationAmh = "ማብራሪያ፡- ትላንት ያመለጠውን እድል የሚገልጸው Type III ኮንዲሽናል 'had + third form' (had taken) ይፈልጋል።";
+      } else {
+        q = `The active voice is: "The board announced the entrance criteria." Convert to Passive:`;
+        qAmh = `አክቲቭ ድምፁ፡ 'The board announced the entrance criteria' ሲሆን ይህንን ወደ ፓሲቭ ድምፅ (Passive voice) ቀይር፡`;
+        options = [
+          "a) The entrance criteria was announced by the board.",
+          "b) The entrance criteria were announced by the board.",
+          "c) The board has been announcing the criteria.",
+          "d) The entrance criteria are announced by the board."
+        ];
+        optionsAmh = [
+          "ሀ) The entrance criteria was announced by the board.",
+          "ለ) The entrance criteria were announced by the board.",
+          "ሐ) The board has been announcing the criteria.",
+          "መ) The entrance criteria are announced by the board."
+        ];
+        answerIndex = 1;
+        explanation = "The word 'criteria' is plural (singular is criterion), hence the past plural auxiliary verb 'were' is correct for past simple passive: 'were announced'.";
+        explanationAmh = "ማብራሪያ፡ 'Criteria' የሚለው ቃል ብዙ ቁጥር ስለሆነ (አንድ ሲሆን criterion ነው) 'were announced' የሚለው ትክክለኛ የፓሲቭ አገባብ ነው።";
+      }
+    }
+
+    list.push({
+      id: qId,
+      subject,
+      grade,
+      question: q,
+      questionAmharic: qAmh,
+      options,
+      optionsAmharic: optionsAmh,
+      answerIndex,
+      explanation,
+      explanationAmharic: explanationAmh,
+      year: yr,
+      stream
+    });
+  }
+
+  return list;
+}�ስጥ ከሚገኙት ተፈጥሮአዊ ሐይቆች መካከል ትልቁና ጥልቀት ያለው የንጹህ ውሃ ሐይቅ የቱ ነው?";
         options = ["a) Lake Tana", "b) Lake Abaya", "c) Lake Awassa", "d) Lake Chamo"];
         optionsAmh = ["ሀ) ጣና ሐይቅ (ስምጥ ሸለቆ ውጪ)", "ለ) አባያ ሐይቅ", "ሐ) አዋሳ ሐይቅ", "መ) ጫሞ ሐይቅ"];
         answerIndex = 1;
@@ -655,8 +1105,379 @@ function generateProceduralMCQs(subject: string, grade: number, count: number): 
 function generateProceduralNotes(subject: string, grade: number, count: number): CurriculumUnit[] {
   const list: CurriculumUnit[] = [];
   const timestamp = Date.now();
+  const subL = subject.toLowerCase();
 
-  const notesTemplates = [
+  let notesTemplates: { num: number; title: string; titleAmh: string; notes: string; notesAmh: string }[] = [];
+
+  if (subL.includes("math")) {
+    notesTemplates = [
+      {
+        num: 3,
+        title: "Matrices, Determinants and Linear Systems",
+        titleAmh: "ማትሪክስ፣ ዲተርሚናንቶች እና የእኩልታ ስብስቦች",
+        notes: `### 📊 Unit 3: Matrices and Systems of Linear Equations
+A matrix is a systematic rectangular array of numbers arranged in rows and columns, used to model vector operations and multi-variable linear networks.
+
+#### 1. Operations and Algebra of Matrices
+- **Addition/Subtraction:** Matrices must have identical dimensions (same row and column counts). Addition is performed component-wise: $[A + B]_{ij} = A_{ij} + B_{ij}$.
+- **Matrix Multiplication:** To multiply $A_{m \times n}$ by $B_{n \times p}$, the column count of $A$ must equal the row count of $B$. The resulting matrix $C$ has dimensions $m \times p$:
+  $$C_{ij} = \sum_{k=1}^n A_{ik} B_{kj}$$
+- **Determinant ($|A|$):** For a 2x2 matrix $A = \begin{bmatrix} a & b \\ c & d \end{bmatrix}$, $|A| = ad - bc$.
+- **Inverse Matrix ($A^{-1}$):** Exists if and only if $|A| \neq 0$ (such matrices are called non-singular). For a 2x2 matrix:
+  $$A^{-1} = \frac{1}{ad - bc} \begin{bmatrix} d & -b \\ -c & a \end{bmatrix}$$
+
+#### 2. Cramer's Rule for Solving Systems
+For a system of linear equations represented by $AX = B$, if $|A| \neq 0$:
+$$x_i = \frac{|A_i|}{|A|}$$
+where $A_i$ is the matrix formed by replacing the $i$-th column of $A$ with the constant column vector $B$.`,
+        notesAmh: `### 📊 ምዕራፍ 3፡ ማትሪክስ፣ ዲተርሚናንቶች እና የቀጥታ መስመር እኩልታዎች
+ማትሪክስ ማለት ቁጥሮችን በረድፍ (rows) እና በአምድ (columns) በስርዓት በማደራጀት የሚፈጠር አልጀብራዊ ቀመር ነው። ይህ ቀመር የዕለት ተዕለት የምህንድስና፣ ኮምፒዩተር እና የባንክ እኩልታዎችን ለመፍታት ያገለግላል።
+
+#### 1. የማትሪክስ ሂሳብ ህጎች
+- **ማባዛት (Matrix Multiplication):** $A_{m \times n}$ ማትሪክስን በ $B_{n \times p}$ ለማባዛት የ $A$ አምድ (column) ቁጥር እና የ $B$ ረድፍ (row) ቁጥር የግድ እኩል መሆን አለባቸው። የውጤቱ ማትሪክስ ልኬት $m \times p$ ይሆናል።
+- **ዲተርሚናንት ($|A|$):** ለ $2 \times 2$ ማትሪክስ $A = \begin{bmatrix} a & b \\ c & d \end{bmatrix}$ ሲሆን ዲተርሚናንቱ $|A| = ad - bc$ ነው።
+- **ተገላቢጦሽ (Inverse Matrix $A^{-1}$):** የሚኖረው የዲተርሚናንቱ ዋጋ ከዜሮ የተለየ ሲሆን ብቻ ነው ($|A| \neq 0$)። ለ $2 \times 2$ ማትሪክስ ቀመሩ፡
+  $$A^{-1} = \frac{1}{ad - bc} \begin{bmatrix} d & -b \\ -c & a \end{bmatrix}$$
+
+#### 2. የክሬመር መርሕ (Cramer's Rule)
+የቀጥታ መስመሮች እኩልታዎችን $AX = B$ በዲተርሚናንት እገዛ ለመፍታት ቀመሩ፡
+$$x = \frac{|A_x|}{|A|}, \quad y = \frac{|A_y|}{|A|}$$
+እዚህ ጋር $|A_x|$ ማለት በማትሪክስ $A$ የመጀመርያ አምድ ምትክ የውጤት ቬክተሩን $B$ በመተካት የሚገኝ ዲተርሚናንት ነው።`
+      },
+      {
+        num: 4,
+        title: "Introduction to Integral Calculus",
+        titleAmh: "የኢንተግራል ካልኩለስ መግቢያ",
+        notes: `### 📐 Unit 4: Integral Calculus Core Mechanics
+Integral calculus is the inverse process of differentiation, physically representing the accumulation of quantities and the area under continuous curves.
+
+#### 1. Indefinite Integrals & Antiderivatives
+If $F'(x) = f(x)$, then $F(x)$ is the antiderivative of $f(x)$, written as:
+$$\int f(x) \, dx = F(x) + C$$
+where $C$ is the constant of integration.
+- **Power Rule for Integration:** 
+  $$\int x^n \, dx = \frac{x^{n+1}}{n+1} + C \quad (\text{for } n \neq -1)$$
+- **Special Case ($n = -1$):**
+  $$\int \frac{1}{x} \, dx = \ln|x| + C$$
+
+#### 2. Definite Integrals & Fundamental Theorem of Calculus
+Ideally used to measure net geometric area locked under a curve between intervals $a$ and $b$:
+$$\int_{a}^{b} f(x) \, dx = F(b) - F(a)$$
+This demonstrates that integration and differentiation are mutually inverse operations.
+
+#### 3. Core Techniques of Integration
+- **Integration by Substitution (U-Substitution):** Reverses the chain rule. If $u = g(x)$, then $du = g'(x)dx$, thus $\int f(g(x))g'(x)dx = \int f(u)du$.`,
+        notesAmh: `### 📐 ምዕራፍ 4፡ የኢንተግራል ካልኩለስ (Integration) መሠረታዊ ማጠቃለያ
+ኢንተግራል ካልኩለስ ማለት የዲሪቬቲቭ ተቃራኒ (inverse) ተግባር ሲሆን፣ በአንድ ጥምዝምዝ መስመር ስር ያለን አጠቃላይ የቦታ ስፋት (Area) ለማስላት ይጠቅማል።
+
+#### 1. ወሰን-አልባ ኢንተግራል (Indefinite Integrals)
+$F'(x) = f(x)$ ከሆነ ኢንተግራሉ እንደሚከተለው ይጻፋል፡
+$$\int f(x) \, dx = F(x) + C$$
+እዚህ ጋር $C$ የኢንተግሬሽን ኮንስታንት ቁጥር ነው።
+- **የፓወር ህግ (Power Rule for Integrals):** 
+  $$\int x^n \, dx = \frac{x^{n+1}}{n+1} + C \quad (n \neq -1)$$
+- **የልዩ ቁጥር ኢንተግራል ($n = -1$ ቢሆን):**
+  $$\int \frac{1}{x} \, dx = \ln|x| + C$$
+
+#### 2. ወሰን-ያለው ኢንተግራል እና ዋናው የካልኩለስ ቲዎረም
+በወሰን $a$ እና $b$ መካከል ያለውን ጠቅላላ የቦታ ስፋት ለማግኘት ቀመሩ፡
+$$\int_{a}^{b} f(x) \, dx = F(b) - F(a)$$
+ይህ ቀመር በዲፈረንሺዬሽን እና በኢንተግሬሽን መካከል ያለውን የቅርብ መልሶ የመገልበጥ ግንኙነት ያረጋግጣል።`
+      }
+    ];
+  } else if (subL.includes("phys")) {
+    notesTemplates = [
+      {
+        num: 3,
+        title: "Electromagnetism and Maxwell's Equations",
+        titleAmh: "ኤሌክትሮማግኔቲዝም እና የማክስዌል እኩልታዎች",
+        notes: `### 🧲 Unit 3: Classical Electromagnetism and Induction
+Electromagnetism unifies electricity and magnetism, outlining how moving charges create magnetic fields and changing magnetic fields induce electrical currents.
+
+#### 1. Magnetic Forces on Moving Charges
+A charge $q$ moving with velocity $v$ in a magnetic field $B$ experiences a magnetic force $F_B$ given by the cross product:
+$$\vec{F}_B = q(\vec{v} \times \vec{B}) \implies F_B = q v B \sin\theta$$
+- **Right Hand Rule (RHR):** Point fingers of right hand in the direction of velocity vector $v$, curl them toward field vector $B$; the thumb points toward force vector $F$ for a positive charge.
+- **Force on a Wire:** A wire of length $L$ carrying current $I$ inside field $B$ experiences force: $F = I L B \sin\theta$.
+
+#### 2. Electromagnetic Induction & Faraday's Law
+Varying the magnetic flux passing through a wire loop induces an electromotive force (EMF):
+- **Magnetic Flux ($\Phi_B$):** $\Phi_B = \vec{B} \cdot \vec{A} = B A \cos\theta$.
+- **Faraday's Law of Induction:** The induced EMF is proportional to rate of change of flux:
+  $$\mathcal{E} = -N \frac{\Delta \Phi_B}{\Delta t}$$
+- **Lenz's Law:** The negative sign dictates that the direction of the induced EMF always opposes the magnetic flux change that produced it.`,
+        notesAmh: `### 🧲 ምዕራፍ 3፡ ኤሌክትሮማግኔቲዝም እና ኤሌክትሪክ ማመንጨት (Induction)
+ኤሌክትሮማግኔቲዝም የኤሌክትሪክ ኃይልንና የማግኔት ጉልበትን በአንድ ላይ የሚያዋህድ ትልቅ ሳይንስ ነው። ተንቀሳቃሽ ኤሌክትሪክ ቻርጆች የራሳቸውን ማግኔት ሲፈጥሩ፣ እና ተለዋዋጭ ማግኔቲክ መስኮች ኤሌክትሪክ እንደሚያመነጩ ያብራራል።
+
+#### 1. በማግኔት መስክ ላይ የሚፈጠር ጉልበት (Force)
+ፍጥነት $v$ ያለው ቻርጅ $q$ በማግኔት መስክ $B$ ውስጥ ሲያልፍ የሚከተለው ጉልበት ያርፍበታል፡
+$$F_B = q v B \sin\theta$$
+- **የቀኝ እጅ ህግ (Right Hand Rule):** የቀኝ እጅዎን አጋኝ ጣቶች በቬሎሲቲ አቅጣጫ አድርገው ማግኔትን በሚያሳዩ ጣቶች ቢታጠፉ፣ አውራ ጣትዎ የጉልበቱን (Force) አቅጣጫ ያሳያል።
+
+#### 2. የኤሌክትሮማግኔቲክ እንዳክሽን ህግ (Faraday's Law)
+አንድ ሽቦ የሚቀበለው የማግኔት ኃይል መጠን በየሴኮንዱ ሲቀየር ሽቦው ላይ የኤሌክትሪክ ግፊት (EMF) ይፈጠራል፡
+- **ማግኔቲክ ፍላክስ ($\Phi_B$):** $\Phi_B = B A \cos\theta$
+- **የፋራዳይ እንዳክሽን ቀመር:**
+  $$\mathcal{E} = -N \frac{\Delta \Phi_B}{\Delta t}$$
+- **የ ሌንዝ ህግ (Lenz's Law):** የተፈጠረው የኤሌክትሪክ ፍሰት ምንጭ የሆነውን የማግኔት ኃይል ለውጥ በሚፃረር አቅጣጫ ነው የሚፈሰው (ይህም በቀመሩ ላይ ባለው የኔጋቲቭ (-) ምልክት ይገለጻል)።`
+      },
+      {
+        num: 4,
+        title: "Wave Mechanics and Physical Optics",
+        titleAmh: "የሞገድ መካኒክስ እና የብርሃን ኦፕቲክስ",
+        notes: `### 🌊 Unit 4: Wave Mechanics and Wave Optics
+Waves transport energy through space without relocating massive particles. This unit models acoustic waves and physical behavior of light.
+
+#### 1. Mechanical Waves Properties
+A continuous transverse wave is mathematically modeled by:
+$$y(x, t) = A \sin(k x - \omega t + \phi)$$
+where $A$ is amplitude, $k = 2\pi/\lambda$ (wave number), and $\omega = 2\pi f$ (angular frequency).
+- **Wave Speed ($v$):** Speed is product of wavelength ($\lambda$) and frequency ($f$):
+  $$v = f \lambda$$
+- **Superposition:** When two waves meet on a plane, their spatial displacements add vectorially, giving wave interference.
+
+#### 2. Physical Optics
+Light shows physical wave attributes like diffraction and polarization:
+- **Young's Double-Slit Experiment:** Proves light is a wave. Bright fringes occur under constructive interference:
+  $$d \sin\theta = m \lambda \quad (m = 0, \pm 1, \pm 2, \dots)$$
+- **Diffraction:** The bending of light rays around sharp edges of solid barriers.`,
+        notesAmh: `### 🌊 ምዕራፍ 4፡ የሞገድ ቲዎሪ እና የብርሃን ሞገድ ኦፕቲክስ (Wave Optics)
+ሞገዶች ቁስን ሳያዛውሩ ኃይልን ከአንድ ቦታ ወደ ሌላ ቦታ የሚያስተላልፉበት ዋና መንገድ ናቸው።
+
+#### 1. የሞገድ መሠረታዊ ጠባያት
+- **የሞገድ ፍጥነት ($v$):** ሞገዱ የሚጓዝበት ፍጥነት በርዝመቱ ($\lambda$) እና በፍሪኩዌንሲው ($f$) ብዜት ይሰላል፡
+  $$v = f \cdot \lambda$$
+- **የማዕበል ጣልቃ-ገብነት (Interference):** ሁለት የተለያዩ ሞገዶች በአንድ ቦታ ላይ ሲገናኙ የአካል ለውጦቻቸው እርስ በርስ ይደማመራሉ (Constructive) ወይም ይባላሉ (Destructive)።
+
+#### 2. የብርሃን የሞገድ ጠባይ (Physical Optics)
+ብርሃን እንደ ሞገድ ባህሪ አለው። ይህንን ለማረጋገጥ የሚከተሉት ክስተቶች ይኖራሉ፡
+- **የቶማስ ያንግ ሁለት ስንጥቅ ፈተና (Double Slit):** በብርሃን ሞገዶች Constructive መፃረር ምክንያት የሚደመቁ የብርሃን መስመሮችን ይፈጥራል፡
+  $$d \sin\theta = m \lambda$$
+- **ዳይፍራክሽን (Diffraction):** ብርሃን በጠባብ ቀዳዳዎች ውስጥ ሲያልፍ ወይም ስለታም ጠርዞችን ሲያጋጥመው ቅርጹን የመጠማዘዝ እና የመስፋፋት ክስተት ነው።`
+      }
+    ];
+  } else if (subL.includes("chem")) {
+    notesTemplates = [
+      {
+        num: 3,
+        title: "Introduction to Electrochemistry",
+        titleAmh: "የኤሌክትሮኬሚስትሪ መግቢያ",
+        notes: `### 🔋 Unit 3: Electrochemistry and Redox Reactions
+Electrochemistry explores the relationship between electricity and chemical processes, outlining how redox (reduction-oxidation) reactions generate electric currents.
+
+#### 1. Redox Reactions and Half Equations
+Redox processes involve the transfer of electrons from a reducing agent (which undergoes oxidation) to an oxidizing agent (which undergoes reduction).
+- **Oxidation:** Loss of electrons (leads to an increase in oxidation number).
+- **Reduction:** Gain of electrons (leads to a decrease in oxidation number).
+- **Balancing:** Redox equations are split into oxidation and reduction half-reactions, balanced individually, and re-fused.
+
+#### 2. Galvanic / Voltaic Cells
+A galvanic cell generates electric energy spontaneously from a chemical reaction.
+- **Anode:** The negative electrode where oxidation takes place ($Zn \\to Zn^{2+} + 2e^-$).
+- **Cathode:** The positive electrode where reduction takes place ($Cu^{2+} + 2e^- \\to Cu$).
+- **Salt Bridge:** Maintains electrical neutrality by allowing ions to flow.
+- **Cell Potential ($E^\\circ_{cell}$):** Measuring cell potential:
+  $$E^\\circ_{cell} = E^\\circ_{cathode} - E^\\circ_{anode}$$`,
+        notesAmh: `### 🔋 ምዕራፍ 3፡ ኤሌክትሮኬሚስትሪ እና የሬዶክስ ግብረመልስ
+ኤሌክትሮኬሚስትሪ በኬሚካላዊ ኃይል እና በኤሌክትሪክ ፍሰት መካከል ያለውን ግንኙነት የሚያጠና የኬሚስትሪ ክፍል ነው። ሬዶክስ (Redox) ማለት በአንድ ግብረመልስ ውስጥ የኤሌክትሮኖች ልውውጥ በአቶሞች መካከል የመፈጠር ሂደት ነው።
+
+#### 1. ኦክሳይዴሽን እና ሪዳክሽን (Oxidation vs Reduction)
+- **ኦክሳይዴሽን (Oxidation):** የኤሌክትሮን ማጣት (የኦክሳይዴሽን ቁጥር ይጨምራል)።
+- **ሪዳክሽን (Reduction):** የኤሌክትሮን ማግኘት (የኦክሳይዴሽን ቁጥር ይቀንሳል)።
+
+#### 2. ጋልቫኒክ ሴል (Galvanic / Voltaic Cells)
+ኬሚካላዊ ምላሽ በራሱ ጊዜ የኤሌክትሪክ ኃይል እንዲያመነጭ የሚያደርግ ባትሪ ነው።
+- **አኖድ (Anode):** ኦክሳይዴሽን (oxidation) የሚካሄድበት አሉታዊ (-) ባትሪ ዋልታ።
+- **ካቶድ (Cathode):** ሪዳክሽን (reduction) የሚካሄድበት አዎንታዊ (+) የባትሪ ዋልታ።
+- **የሴሉ ኃይል መጠን ($E^\\circ_{cell}$):**
+  $$E^\\circ_{cell} = E^\\circ_{cathode} - E^\\circ_{anode}$$`
+      },
+      {
+        num: 4,
+        title: "Industrial Chemistry and Environmental Safety",
+        titleAmh: "የኢንዱስትሪ ኬሚስትሪ እና የአካባቢ ደህንነት",
+        notes: `### 🏭 Unit 4: Industrial Chemistry and Eco-Systems
+This unit covers major industrial processes in Ethiopia (cement, soap, fertilizer synthesis) and standard green chemistry principles.
+
+#### 1. Nitrogen Fixation and Haber Process
+The synthesis of ammonia is crucial for agricultural fertilizer production:
+$$N_2(g) + 3H_2(g) \rightleftharpoons 2NH_3(g) \quad (\Delta H = -92.4 \text{ kJ/mol})$$
+- **Optimal Conditions:** Temperature of $\approx 450^\circ\text{C}$, high pressure of $200\text{ atm}$, and an Iron-based catalyst.
+- **Le Chatelier's Application:** High pressures favor the product side because the product has fewer gas moles (2 vs 4). High temperatures shift it left, so a compromise temperature is used.
+
+#### 2. Environmental Buffering
+Control of acid effluents using chemical neutralizers:
+- **Acid Rain:** Formed by sulfur dioxide emissions: $SO_2 + H_2O \to H_2SO_3$.
+- **Liming:** Spreading Calcium Carbonate ($CaCO_3$) on acidified soil or lakes to neutralize pH levels and restore ecological equilibrium.`,
+        notesAmh: `### 🏭 ምዕራፍ 4፡ የኢንዱስትሪ ኬሚስትሪ እና የአካባቢ ደህንነት
+ማዳበሪያዎችን፣ ሳሙና እና ሲሚንቶን በሀገር ውስጥ የማምረቻ ሳይንስ እና አካባቢያችንን ከኬሚካል ብክለት የምንጠብቅበት መርሆዎች።
+
+#### 1. የሀበር ፕሮሰስ (Haber-Bosch Process - የአሞኒያ ምርት)
+ለእርሻ ማዳበሪያ የሚሆን አሞኒያ ጋዝን ከናይትሮጅንና ሃይድሮጅን የማምረቻ ዓለም አቀፍ ፎርሙላ፡
+$$N_2(g) + 3H_2(g) \rightleftharpoons 2NH_3(g)$$
+- **የሚያስፈልገው የአካባቢ ሁኔታ:** ወደ 450 ዲግሪ ሴልሺየስ ሙቀት፣ ከፍተኛ የአየር ፕሬሸር (200 atm) እና የብረት (Iron) ካታሊስት።
+
+#### 2. የአካባቢ ጥበቃ እና ኬሚካዊ መፍትሔ
+- **አሲድ ዝናብ (Acid Rain):** ከፋብሪካ የሚወጣው ሰልፈር ዳይኦክሳይድ ($SO_2$) ከደመና ጋር ሲዋሃድ የሚፈጠር ጎጂ ዝናብ ነው።
+- **ላሚንግ (Neutralization):** በአሲድ የተበከለን መሬት ወይም ሀይቅ ኖራ (Calcium Carbonate $CaCO_3$) በመርጨት የአሲድ መጠኑን በማጥፋት ወደ ገለልተኛ ፒኤች (pH 7) የመመለስ ዘዴ።`
+      }
+    ];
+  } else if (subL.includes("biol") || subL.includes("bio")) {
+    notesTemplates = [
+      {
+        num: 3,
+        title: "Evolution and Theories of Human Origin",
+        titleAmh: "የዝግመተ-ለውጥ ንድፈ-ሀሳብ እና የሰው ልጅ መነሻ",
+        notes: `### 💀 Unit 3: Organic Evolution & Ethiopian Fossil Evidence
+Organic evolution explains how ancestral species change over generations due to ecological selection and genetic mutations.
+
+#### 1. Darwinian Theory of Natural Selection
+Charles Darwin's core mechanism for evolution:
+1. **Overproduction:** Species produce more offspring than can survive.
+2. **Struggle for Existence:** Competition for resources (food, water, mates).
+3. **Genetic Variation:** Offspring exhibit inherited differences.
+4. **Survival of the Fittest:** Individuals with advantageous traits adapt, survive, and pass on those traits.
+
+#### 2. Ethiopia as the Cradle of Humankind
+Ethiopia's Great Rift Valley (Afar and Awash regions) contains the world's most critical fossil discoveries:
+- **"Lucy" (Dinknesh):** *Australopithecus afarensis* discovered in Hadar in 1974. Dating back 3.2 million years, proving bipedalism (upright walking) preceded larger brain capacities.
+- **"Ardi":** *Ardipithecus ramidus* discovered in Aramis, Afar, dated back 4.4 million years, providing oldest evolutionary transition links.`,
+        notesAmh: `### 💀 ምዕራፍ 3፡ የዝግመተ-ለውጥ (Evolution) ንድፈ-ሀሳብ እና የሰው ልጅ ምንጭ
+ዝግመተ-ለውጥ ማለት ህይወት ያላቸው ነገሮች ከአካባቢያቸው ጋር ለመላመድ በሚያደርጉት ትግል በዘር ውርሳቸው ላይ የሚያመጡት ቀስ በቀስ ለውጥ ነው።
+
+#### 1. የዳርዊን የተፈጥሮ ምርጫ ህግ (Natural Selection)
+ቻርለስ ዳርዊን ያቀረበው ዋና መርሕ፡
+- **Adaptation:** በአካባቢያቸው ተስማሚ የሰውነት ቅርጽና ጠባይ ያላቸው ዝርያዎች ተርፈው ዘራቸውን ይተካሉ። ተስማሚ ያልሆኑት ግን ይጠፋሉ።
+
+#### 2. ኢትዮጵያ - የሰው ልጅ መገኛ ስልጣኔ (Cradle of Humankind)
+በኢትዮጵያ ስምጥ ሸለቆ (በተለይ በአፋር ሃዳር) የተገኙ የቅድመ-ሰው ቅሪተ-አካላት ዓለምን ያስገረሙና ታሪክን የቀየሩ ናቸው፡
+- **ድንቅነሽ (Lucy - Australopithecus):** በ1974 ዓ.ም በአፋር ሃዳር የተገኘች፣ የ3.2 ሚሊዮን ዓመታት ዕድሜ ያላት የቅድመ-ሰው ቅሪት ናት። በሁለት እግሯ ቀጥ ብላ መጓዟን በማረጋገጥ የሰው ልጅ ዝግመተ-ለውጥን መነሻ አሳይታለች።
+- **አርዲ (Ardi - Ardipithecus):** የ4.4 ሚሊዮን ግምት ዕድሜ ያላት ጥንታዊት ቅርስ።`
+      },
+      {
+        num: 4,
+        title: "Ecology, Biomes and Ecosystem Preservation",
+        titleAmh: "የአካባቢ ጥናት፣ ባዮሞች እና ስነ-ምህዳር ጥበቃ",
+        notes: `### 🌳 Unit 4: Ecology and Global Biomes
+This unit covers structural elements of ecosystems, trophic energy loops, and major biomes.
+
+#### 1. Trophic Structure and Energy Pyramids
+In an ecosystem, energy enters as solar rays and is converted by biological components:
+- **Primary Producers:** Green plants that capture sunlight via photosynthesis.
+- **Primary Consumers:** Herbivores (plant-eaters).
+- **Secondary/Tertiary Consumers:** Carnivores (meat-eaters) and Omnivores.
+- **Decomposers:** Fungi and bacteria that break down dead organic matter, recycling essential nutrients.
+- **The 10% Energetics Law:** Only $\approx 10\%$ of the energy at one trophic level is transferred to the next. The remaining $90\%$ is lost as metabolic heat.
+
+#### 2. Ecological Succession
+The gradual process by which ecosystems change and develop over time:
+- **Primary Succession:** Begins on barren surface with no soil (e.g., bare rock after volcanic eruption). Pioneer species like lichens break rock to make soil.
+- **Secondary Succession:** Occurs in disturbed areas where soil already exists (e.g., forest regrowth after a fire). much faster than primary.`,
+        notesAmh: `### 🌳 ምዕራፍ 4፡ ኢኮሎጂ (Ecology) እና የአካባቢ ጥበቃ
+ስነ-ምህዳር ማለት ሕይወት ያላቸው ነገሮች (ሰዎች፣ እፅዋት፣ እንስሳት) እና ሕይወት ከሌላቸው ነገሮች (አፈር፣ ውሃ፣ አየር) ጋር ያላቸውን የጋራ ትስስር የሚያጠና ዘርፍ ነው።
+
+#### 1. የኢነርጂ ዳይናሚክስ (የ10% ህግ)
+በምግብ ሰንሰለት (Food Chain) ውስጥ አንዱ አካል ሌላውን ሲመገብ የሚተላለፈው የኢነርጂ ኃይል መጠን **የቀደመው 10 በመቶ ብቻ** ነው። ቀሪው 90 በመቶው በሙቀት መልክ በሴሎች ሥራ ይባክናል፤ ስለዚህ በሰንሰለቱ ላይ ወደላይ በሄድን ቁጥር ጠቅላላ ኃይሉ በፍጥነት ይቀንሳል።
+
+#### 2. የስነ-ምህዳር ዳግም ግንባታ (Succession)
+- **Primary Succession:** ምንም አፈር በሌለበት ባዶ አለት ወይም ድንጋይ ላይ ከባዶ የሚጀመር የዕፅዋት መስፋፋት (ለምሳሌ የእሳተ ገሞራ ፍንዳታ ከተካሄደ በኋላ)።
+- **Secondary Succession:** አፈር በነበረበት ግን በተፈጥሮ አደጋ (ለምሳሌ በሰደድ እሳት) በወደመ አካባቢ በፍጥነት የሚከሰት ዳግም መብቀል።`
+      }
+    ];
+  } else if (subL.includes("hist")) {
+    notesTemplates = [
+      {
+        num: 3,
+        title: "The Battle of Adwa & Anti-Colonial Triumph",
+        titleAmh: "የዓድዋ ድል እና የፀረ-ቅኝ አገዛዝ ታሪክ",
+        notes: `### 🏛️ History Unit 3: The Battle of Adwa (1896)
+The Battle of Adwa represented the pinnacle African victory against European imperial expansion inside the partition era.
+
+#### 1. Treaties and Disputed Clauses (Treaty of Wuchale)
+- Signed on May 2, 1889, between Emperor Menelik II of Ethiopia and Italian Delegate Count Pietro Antonelli.
+- **Article XVII Disagreement:** 
+  - **Amharic Version:** Stated that Ethiopia *may* use the Italian Foreign Office for international relations (optional).
+  - **Italian Version:** Stated that Ethiopia *must* conduct all foreign affairs via Italy (forcing a colonial protectorate status).
+- **Renunciation:** Empress Taytu Betul urged Menelik to rip up the treaty, refusing to accept any compromise on national sovereignty. Ethiopia formally declared war.
+
+#### 2. The Campaign of Adwa (March 1, 1896)
+On March 1, 1896 (Yekatit 23, 1888 E.C.), the Ethiopian patriotic forces clashed with the Italian invading army led by General Oreste Baratieri.
+- **Victory Factors:** Superior coordinate intelligence, unified national mobilization across diverse regional leaders (Ras Alula, Ras Makonnen, Negus Tekle Haymanot), rapid terrain deployment, and strategic surprise.
+- **Global Impact:** Ethiopia secured official international sovereignty, becoming a universal global beacon of black dignity, pan-African freedom, and resistance against colonial incursions.`,
+        notesAmh: `### 🏛️ ታሪክ 12ኛ ክፍል ምዕራፍ 3፡ የዓድዋ ታላቅ ድል (1896)
+የዓድዋ ጦርነትና የተመዘገበው ድል፣ ጥቁር ህዝቦች በአውሮፓ ቅኝ ገዥዎች ላይ የተቀዳጁት ታላቅ የታሪክ ክስተትና የነጻነት ተምሳሌት ነው።
+
+#### 1. የውጫሌ ስምምነት (Wuchale Treaty) መነሻ
+ግጭቱ የጀመረው ግንቦት 2 ቀን 1889 ዓ.ም በተፈረመው የውጫሌ ስምምነት የተንኮል አንቀፅ 17 ምክንያት ነው፡-
+- **በአማርኛ የተቀመጠው:** ኢትዮጵያ ከሌሎች የአውሮፓ መንግስታት ጋር ግንኙነት ማድረግ *ከፈለገች* በኢጣሊያ እገዛ ማድረግ ትችላለች (ከተማረች አማራጭ) ይላል።
+- **በጣሊያንኛ የተቀመጠው:** ኢትዮጵያ ከሌሎች አገሮች ጋር የምታደርገውን ግንኙነት በሙሉ *በግድ* በጣሊያን በኩል ማድረግ አለባት (ቅኝ ግዛትነትን የሚያስገድድ) ይላል።
+- **የነጻነት ውሳኔ:** እቴጌ ጣይቱ ብጡል "የሀገራችንን ነጻነት ለጣሊያን አንሸጥም" በሚል ቆራጥነት የውጫሌ ውል እንዲቀደድ አደረጉ።
+
+#### 2. የዓድዋ ውጊያ እና ድል (የካቲት 23 ቀን 1888 ዓ.ም)
+በዓድዋ ተራሮች ላይ አፄ ምኒልክ፣ እቴጌ ጣይቱ፣ ራስ አሉላ አባ ነጋ፣ ራስ መኮንን እና ልሂቃኑ የአገር ፍቅር ስሜት ያላቸውን ሰራዊት አስተባብረው የባራቴሪን ወራሪ ጦር ሙሉ በሙሉ ደመሰሱ።
+- **የዓለም አቀፍ ጠቀሜታ:** ብቸኛዋ ነጻ አፍሪካዊት አገር ሆና እንድትቆም ያደረገ ከመሆኑም በላይ ለፓን-አፍሪካኒዝም እና ለጥቁር ህዝቦች ነጻነት ትልቁን ችቦ የለኮሰ ድል ነው።`
+      }
+    ];
+  } else if (subL.includes("geog")) {
+    notesTemplates = [
+      {
+        num: 3,
+        title: "Topographical Analysis and Map Reading",
+        titleAmh: "የካርታ ጥናት እና የቶፖግራፊ ትንተና",
+        notes: `### 🌍 Unit 3: Advanced Map Reading and Terrains
+Cartography equips geographers with quantitative spatial parameter reading and contour tracking capabilities.
+
+#### 1. Contour Lines and Landscapes
+- **Contour Lines:** Lines drawn on a map joining points of equal elevation above mean sea level.
+- **Contour Interval (C.I.):** The constant vertical distance difference between two adjacent contour lines.
+- **Spacing Guidelines:**
+  - **Steep Slope:** Contours are packed very closely together.
+  - **Gentle Slope:** Contours are widely separated.
+  - **Vertical Cliff:** Contours merge into a single line.
+  - **Valley/River Gorge:** Contours form a "V" shape pointing upstream (toward higher ground).
+
+#### 2. Map Scales and Calculations
+- **Representative Fraction (R.F.):** Exposes the map distance ratio to ground distance (e.g., $1:50,000$ represents $1 \\text{ cm}$ on map $= 50,000 \\text{ cm}$ or $500 \\text{ m}$ on ground).
+- **Gradient Calculation:**
+  $$\\text{Gradient} = \\frac{\\text{Vertical Interval (V.I.)}}{\\text{Horizontal Distance (H.D.)}}$$`,
+        notesAmh: `### 🌍 ጂኦግራፊ ምዕራፍ 3፡ የካርታ ንባብ እና ኮንቱር መስመሮች (Contours)
+የካርታ ጥናት መልክዓ ምድርን በቁጥር፣ በርቀትና በከፍታ ለመለካት የሚያገለግል ሳይንሳዊ ዘዴ ነው።
+
+#### 1. የኮንቱር መስመሮች (Contour Lines)
+ኮንቱር ማለት በካርታ ላይ እኩል ከፍታ ያላቸውን ቦታዎች የሚያገናኝ ረቂቅ መስመር ነው።
+- **የኮንቱር ልዩነት (Contour Interval):** በሁለት ተከታታይ የኮንቱር መስመሮች መካከል ያለው የማያቋርጥ የከፍታ ልዩነት።
+- **የመስመሮቹ ርቀት ፍቺ፡**
+  - **ገደላማ ቦታ (Steep Slope):** መስመሮቹ እርስ በርስ በጣም ተቀራርበው ይሳላሉ።
+  - **ጠፍጣፋ ቦታ (Gentle Slope):** መስመሮቹ እርስ በርስ በጣም ተራርቀው ይሳላሉ።
+  - **ሸለቆ / ወንዝ (Valley):** መስመሮቹ የ "V" ቅርጽ ሰርተው አንገቱ ወደ ላይኛው ተራራማ ቦታ ሲያመለክት ነው።
+
+#### 2. የካርታ ስኬል (Scale) ማስላቶች
+- **አርኤፍ (Representative Fraction):** የርቀት መጠን ንጽጽር (ለምሳሌ $1:100,000$ ማለት 1 ሴ.ሜ በካርታው ላይ 1 ኪሎሜትር በእውነተኛ መሬት ላይ ማለት ነው)።
+- **የቁልቁለት መጠን (Gradient) ፎርሙላ፡**
+  $$\\text{Gradient} = \\frac{\\text{የከፍታ ልዩነት (V.I.)}}{\\text{በመሬት ላይ ያለው አግድም ርቀት (H.D.)}}$$`
+      }
+    ];
+  } else {
+    notesTemplates = [
+      {
+        num: 3,
+        title: `${subject} Advanced Concepts & Analysis`,
+        titleAmh: `የ${subject} የላቀ ፅንሰ ሀሳብ ጥናት`,
+        notes: `### 📚 Unit 3: Advanced Study Guide for ${subject}
+Preparing for national exams.
+
+#### 1. Objectives
+Core principles and terms.
+
+#### 2. Systems Evaluation
+Synthesizing models for speed boosts.`,
+        notesAmh: `### 📚 ምዕራፍ 3፡ የ${subject} ዝርዝር የፈተና ማጠቃለያ
+ለፈተና ዝግጁ ለመሆን የሚያስፈልጉ መሠረታዊ የእውቀት ቁልፎች እዚህ ተካተዋል።`
+      }
+    ];
+  }
+
+  const defaultNotesTemplates = [
     {
       num: 3,
       title: "Advanced Electrostatics & Electric Fields",
@@ -770,6 +1591,10 @@ The transfer of genetic information proceeds from DNA to RNA and finally to func
 2. **ትራንስሌሽን (Translation):** ኤምአርኤንኤ ወደ ራይቦዞም በመሄድ ኮዶቹ በአሚኖ አሲዶች ተተርጉመው የፕሮቲን ሰንሰለት የሚገነቡበት የመጨረሻ ደረጃ ነው።`
     }
   ];
+
+  if (notesTemplates.length === 0) {
+    notesTemplates = defaultNotesTemplates;
+  }
 
   for (let i = 0; i < count; i++) {
     const template = notesTemplates[i % notesTemplates.length];
@@ -1012,14 +1837,11 @@ export default function App() {
     setSelectedSubject(nextSub);
     
     // Find first unit for this grade and subject
-    const firstSubjectUnit = curriculumUnits.find(u => u.grade === grade && u.subject === nextSub);
+    const firstSubjectUnit = curriculumUnits.find(u => u.grade === grade && u.subject === nextSub) || curriculumUnits.find(u => u.subject === nextSub);
     if (firstSubjectUnit) {
       setSelectedUnitId(firstSubjectUnit.id);
     } else {
-      const fallbackUnit = curriculumUnits.find(u => u.grade === grade) || curriculumUnits.find(u => u.subject === nextSub) || curriculumUnits[0];
-      if (fallbackUnit) {
-        setSelectedUnitId(fallbackUnit.id);
-      }
+      setSelectedUnitId("");
     }
   };
 
@@ -1933,7 +2755,7 @@ export default function App() {
                 </div>
 
                 {/* Grid or Horizontal Scroll of 4 subject buttons exactly from design mockup */}
-                <div className="grid grid-cols-4 gap-3.5">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   {[
                     { id: 'math', name: 'Math', amh: 'ሒሳብ', sub: 'Mathematics', icon: Calculator, color: 'text-teal-400 bg-teal-500/10 border-teal-500/20' },
                     { id: 'phys', name: 'Physics', amh: 'ፊዚክስ', sub: 'Physics', icon: Zap, color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
@@ -1947,22 +2769,33 @@ export default function App() {
                         onClick={() => {
                           setSelectedSubject(subjectCard.sub);
                           setActiveTab('quiz');
+                          const firstSubjectUnit = curriculumUnits.find(u => u.grade === selectedGradeFilter && u.subject === subjectCard.sub) || curriculumUnits.find(u => u.subject === subjectCard.sub);
+                          if (firstSubjectUnit) {
+                            setSelectedUnitId(firstSubjectUnit.id);
+                          } else {
+                            setSelectedUnitId("");
+                          }
                         }}
-                        className={`border rounded-[2rem] p-4 flex flex-col items-center justify-center gap-3 transition-all hover:scale-[1.03] active:scale-[0.97] cursor-pointer shadow-md select-none group min-h-[140px] text-center ${
+                        className={`border rounded-2xl p-2.5 md:p-3 flex items-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shadow-sm select-none group w-full text-left ${
                           theme === 'light'
-                            ? 'bg-white border-amber-900/15 hover:border-amber-500/40 hover:bg-amber-50/10'
-                            : 'bg-slate-900 border-vip-charcoal/45 hover:border-vip-gold/30 hover:bg-slate-950'
+                            ? 'bg-white border-slate-200 hover:border-emerald-500/40 hover:bg-slate-50'
+                            : 'bg-slate-900 border-vip-charcoal/40 hover:border-vip-gold/30 hover:bg-slate-950'
                         }`}
                       >
                         {/* Circle background with icon */}
-                        <div className={`p-4 rounded-full w-14 h-14 flex items-center justify-center transition-all shadow-inner ${subjectCard.color}`}>
-                          <CardIcon className="w-6 h-6" />
+                        <div className={`p-2.5 rounded-xl w-10 h-10 flex items-center justify-center transition-all ${subjectCard.color}`}>
+                          <CardIcon className="w-5 h-5 animate-pulse" />
                         </div>
-                        <span className={`text-xs font-black block group-hover:text-vip-gold transition-colors tracking-tight font-display ${
-                          theme === 'light' ? 'text-slate-900' : 'text-white'
-                        }`}>
-                          {lang === 'amh' ? subjectCard.amh : subjectCard.name}
-                        </span>
+                        <div className="flex flex-col min-w-0">
+                          <span className={`text-xs font-black group-hover:text-vip-gold transition-colors tracking-tight font-display ${
+                            theme === 'light' ? 'text-slate-900' : 'text-white'
+                          }`}>
+                            {lang === 'amh' ? subjectCard.amh : subjectCard.name}
+                          </span>
+                          <span className="text-[10px] text-gray-500 truncate">
+                            {lang === 'amh' ? 'ማትሪክ ማጠቃለያ' : 'Matric Core'}
+                          </span>
+                        </div>
                       </button>
                     );
                   })}
@@ -2293,7 +3126,7 @@ export default function App() {
                     { val: 10, labelEng: "Grade 10", labelAmh: "10ኛ ክፍል", desc: "Polynomials & Org Chem" },
                     { val: 11, labelEng: "Grade 11", labelAmh: "11ኛ ክፍል", desc: "Kinematics & Cells" },
                     { val: 12, labelEng: "Grade 12", labelAmh: "12ኛ ክፍል", desc: "Calculus, History & Rift" },
-                    { val: 13, labelEng: "Freshman Univ", labelAmh: "ፍሬሽማን ዩኒቨርሲቲ", desc: "College Logic & Physics" }
+                    { val: 13, labelEng: "Freshman University", labelAmh: "ፍሬሽማን ዩኒቨርሲቲ", desc: "College Logic & Physics" }
                   ].map((gradeBtn) => {
                     const isSelected = selectedGradeFilter === gradeBtn.val;
                     return (
@@ -2323,37 +3156,39 @@ export default function App() {
               </div>
 
               {/* Subject Select Bar */}
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-slate-900 border border-vip-charcoal/40 rounded-2xl">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{lang === 'amh' ? 'ፈተና ፈልግ፡' : 'Subject Selection:'}</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {subjectsList.map((sub, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => {
-                          setSelectedSubject(sub);
-                          setCurrentMCQIndex(0);
-                          setRevealMCQAnswer(false);
-                          // Auto set active unit id to first unit of that subject to be clean & in order!
-                          const firstSubjectUnit = curriculumUnits.find(u => u.grade === selectedGradeFilter && u.subject === sub);
-                          if (firstSubjectUnit) {
-                            setSelectedUnitId(firstSubjectUnit.id);
-                          }
-                        }}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold tracking-wider uppercase transition-all cursor-pointer ${
-                          selectedSubject === sub 
-                            ? 'bg-vip-gold text-vip-dark shadow-md shadow-vip-gold/15 animate-pulse' 
-                            : 'bg-slate-950/40 text-gray-400 hover:text-white border border-vip-charcoal/30'
-                        }`}
-                      >
-                        {sub}
-                      </button>
-                    ))}
-                  </div>
+              <div className="flex flex-wrap items-center gap-3 p-2.5 bg-slate-900/90 border border-vip-charcoal/40 rounded-2xl">
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">
+                  {lang === 'amh' ? 'ፈተና ፈልግ' : 'Course:'}
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {subjectsList.map((sub, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setSelectedSubject(sub);
+                        setCurrentMCQIndex(0);
+                        setRevealMCQAnswer(false);
+                        // Auto set active unit id to first unit of that subject to be clean & in order!
+                        const firstSubjectUnit = curriculumUnits.find(u => u.grade === selectedGradeFilter && u.subject === sub) || curriculumUnits.find(u => u.subject === sub);
+                        if (firstSubjectUnit) {
+                          setSelectedUnitId(firstSubjectUnit.id);
+                        } else {
+                          setSelectedUnitId("");
+                        }
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold tracking-wider uppercase transition-all duration-200 cursor-pointer ${
+                        selectedSubject === sub 
+                          ? 'bg-gradient-to-r from-vip-gold to-amber-500 text-vip-dark shadow-md shadow-vip-gold/20' 
+                          : 'bg-slate-950 text-gray-400 hover:text-white hover:bg-slate-950/80 border border-vip-charcoal/30'
+                      }`}
+                    >
+                      {sub}
+                    </button>
+                  ))}
                 </div>
 
-                <div className="flex items-center gap-2 text-xs text-vip-gold font-bold bg-vip-gold/10 border border-vip-gold/30 px-3 py-1.5 rounded-xl shrink-0">
-                  <Database className="w-3.5 h-3.5" />
+                <div className="ml-auto flex items-center gap-1.5 text-[10px] text-vip-gold font-bold bg-vip-gold/5 border border-vip-gold/20 px-2.5 py-1 rounded-xl shrink-0">
+                  <Database className="w-3 h-3" />
                   <span>Stream: {studentInfo.fieldStream}</span>
                 </div>
               </div>
@@ -3519,6 +4354,143 @@ export default function App() {
                 <h2 className="text-3xl font-display font-black text-white mt-1">
                   {lang === 'amh' ? 'ማውረጃ፣ ማጋሪያ እና የቪአይፒ መረጃ ማስተካከያ' : 'Export Study Plan & Profile Tools'}
                 </h2>
+              </div>
+
+              {/* 💳 Student VIP Profile Card & Settings Hub (Replaces desktop web header controls!) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-2">
+                
+                {/* VIP Student Card */}
+                <div className={`p-6 rounded-3xl border transition-all ${
+                  theme === 'light'
+                    ? 'bg-amber-50/10 border-amber-900/15 shadow-md text-slate-800'
+                    : 'bg-gradient-to-br from-slate-900 to-slate-950 border-vip-gold/30 shadow-lg shadow-vip-gold/5'
+                }`}>
+                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-vip-charcoal/20">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-vip-gold">
+                      🎖️ AKSUM VIP ACADEMY STUDENT
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-vip-gold/10 text-vip-gold border border-vip-gold/20 text-[9px] font-bold uppercase tracking-wider font-mono">
+                      ACTIVE MEMBER
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    {/* Circle Avatar */}
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-vip-gold to-amber-500 text-slate-950 font-display font-black text-2xl flex items-center justify-center shadow-md">
+                      {studentInfo.name ? studentInfo.name.charAt(0).toUpperCase() : 'A'}
+                    </div>
+
+                    <div>
+                      <h3 className={`text-xl font-display font-black transition-colors ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
+                        {studentInfo.name}
+                      </h3>
+                      <p className="text-xs text-vip-gold font-semibold tracking-wider font-mono">
+                        {lang === 'amh' ? 'የጥናት መለያ ቁጥር' : 'Student ID'}: #{studentInfo.name.length * 3721}
+                      </p>
+                      <span className={`inline-block text-[10px] uppercase tracking-wider font-semibold py-0.5 px-2 rounded mt-1.5 ${
+                        theme === 'light' ? 'bg-amber-100/60 text-slate-700' : 'bg-slate-800 text-gray-400'
+                      }`}>
+                        {studentInfo.fieldStream} • Grade {studentInfo.gradeLevel}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 mt-5 pt-4 border-t border-vip-charcoal/20 text-left font-sans">
+                    <div>
+                      <span className="text-[9px] text-gray-400 uppercase tracking-widest block">{lang === 'amh' ? 'የሁለተኛ ደረጃ ት/ቤት' : 'HIGH SCHOOL'}</span>
+                      <span className={`text-[11px] font-bold block ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>{studentInfo.school}</span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-gray-400 uppercase tracking-widest block">{lang === 'amh' ? 'ታሪጌት ዩኒቨርሲቲ' : 'TARGET COLLEGE'}</span>
+                      <span className={`text-[11px] font-bold block ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>{studentInfo.targetUni ? studentInfo.targetUni : 'Addis Ababa University'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Theme & Language Native Buttons Selector block */}
+                <div className={`p-6 rounded-3xl border transition-all space-y-5 ${
+                  theme === 'light'
+                    ? 'bg-amber-50/30 border-amber-900/15 shadow-sm'
+                    : 'bg-slate-900 border-vip-charcoal/40'
+                }`}>
+                  <h4 className={`text-xs font-bold uppercase tracking-wider mb-2 border-b pb-2 ${
+                    theme === 'light' ? 'border-amber-900/10 text-slate-900' : 'border-vip-charcoal/40 text-white'
+                  }`}>
+                    ⚙️ {lang === 'amh' ? 'የመተግበሪያ ምርጫዎች' : 'APP PREFERENCES'}
+                  </h4>
+
+                  {/* Language selector */}
+                  <div className="space-y-2 text-left">
+                    <label className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 ${
+                      theme === 'light' ? 'text-slate-700' : 'text-vip-gold'
+                    }`}>
+                      <Languages className="w-3.5 h-3.5" />
+                      {lang === 'amh' ? 'የቋንቋ ምርጫ መቀያየሪያ' : 'SYSTEM STUDY LANGUAGE'}
+                    </label>
+
+                    <div className="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-xl border border-vip-charcoal/30">
+                      <button
+                        onClick={() => toggleLanguage('amh')}
+                        className={`py-2 rounded-lg text-xs font-bold tracking-wider uppercase transition-all cursor-pointer ${
+                          lang === 'amh' ? 'bg-vip-gold text-vip-dark font-black' : 'text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        አማርኛ (Amharic)
+                      </button>
+                      <button
+                        onClick={() => toggleLanguage('eng')}
+                        className={`py-2 rounded-lg text-xs font-bold tracking-wider uppercase transition-all cursor-pointer ${
+                          lang === 'eng' ? 'bg-vip-gold text-vip-dark font-black' : 'text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        English
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Themes Selector */}
+                  <div className="space-y-2 text-left">
+                    <label className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 ${
+                      theme === 'light' ? 'text-slate-700' : 'text-vip-gold'
+                    }`}>
+                      {theme === 'light' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+                      {lang === 'amh' ? 'የእይታ ገጽታ (Theme)' : 'VISUAL DISPLAY THEME'}
+                    </label>
+
+                    <div className="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-xl border border-vip-charcoal/30">
+                      <button
+                        onClick={() => theme !== 'light' && toggleTheme()}
+                        className={`py-2 rounded-lg text-xs font-bold tracking-wider uppercase transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                          theme === 'light' ? 'bg-amber-100 text-slate-950 font-black' : 'text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        <Sun className="w-3.5 h-3.5" />
+                        {lang === 'amh' ? 'ብሩህ (Light)' : 'Day mode'}
+                      </button>
+                      <button
+                        onClick={() => theme !== 'dark' && toggleTheme()}
+                        className={`py-2 rounded-lg text-xs font-bold tracking-wider uppercase transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                          theme === 'dark' ? 'bg-vip-gold text-vip-dark font-black' : 'text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        <Moon className="w-3.5 h-3.5" />
+                        {lang === 'amh' ? 'ጨለማ (Dark)' : 'Dark mode'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Reset options */}
+                  <div className="pt-1.5">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full py-2.5 bg-red-600/10 hover:bg-red-600 hover:text-white border border-red-500/20 text-red-400 transition-all cursor-pointer rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>{lang === 'amh' ? 'ከአካውንት ውጣ / መረጃ ቀይር' : 'RESET STUDENT PROFILE'}</span>
+                    </button>
+                  </div>
+                </div>
+
               </div>
 
               {/* Real App Download & About App segment - PLACED AT THE TOP (Full-Width) for Easy access! */}

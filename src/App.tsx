@@ -1014,34 +1014,6 @@ function generateProceduralMCQs(subject: string, grade: number, count: number): 
     });
   }
 
-  return list;
-}�ስጥ ከሚገኙት ተፈጥሮአዊ ሐይቆች መካከል ትልቁና ጥልቀት ያለው የንጹህ ውሃ ሐይቅ የቱ ነው?";
-        options = ["a) Lake Tana", "b) Lake Abaya", "c) Lake Awassa", "d) Lake Chamo"];
-        optionsAmh = ["ሀ) ጣና ሐይቅ (ስምጥ ሸለቆ ውጪ)", "ለ) አባያ ሐይቅ", "ሐ) አዋሳ ሐይቅ", "መ) ጫሞ ሐይቅ"];
-        answerIndex = 1;
-        explanation = "Lake Abaya is the largest lake inside the Ethiopian Rift Valley basin with a surface area of over 1,160 square kilometers. Lake Tana is the largest lake in Ethiopia but lies on the highlands outside the Rift Valley.";
-        explanationAmh = "ማብራሪያ፡- በአጠቃላይ ጣና ትልቁ ቢሆንም፣ በስምጥ ሸለቆ ባሲን ውስጥ የሚገኘው ትልቁ ሃይቅ አባያ ሃይቅ ነው።";
-      } else {
-        q = "What is the primary cause for the majestic, rugged topography of Ethiopia, featuring deep gorges, high peaks, and rolling plateaus?";
-        qAmh = "ለኢትዮጵያ ተራራማ፣ ወጣ ገባ እና ታላላቅ ሸለቆዎች ላሏት መልክዓ-ምድር ዋነኛው ተፈጥሮአዊ ምክንያት ምንድን ነው?";
-        options = [
-          "a) Severe wind erosion over billions of years",
-          "b) Intense volcanic activities and block faults in the Cenozoic era",
-          "c) Desertification",
-          "d) Ocean tides"
-        ];
-        optionsAmh = [
-          "ሀ) የንፋስ መሸርሸር",
-          "ለ) በሴኖዞይክ ዘመን የነበሩ የፈነዱ እሳተ-ገሞራዎችና የስምጥ ስምጥ መፈጠር (Eruption/Faulting)",
-          "ሐ) የበረሀማነት መስፋፋት",
-          "መ) የባህር ሞገድ ተጽዕኖ"
-        ];
-        answerIndex = 1;
-        explanation = "The majestic, rugged topography is a direct product of the Cenozoic era's massive basaltic volcanic lava flows, coupled with subsequently shaped uplift and extreme deep river dissection (gorge erosion).";
-        explanationAmh = "ማብራሪያ፡- የኢትዮጵያ ወጣገባና ውብ መልክዓ ምድር የተፈጠረው በሴኖዞይክ ዘመን (Cenozoic) የነበሩ እሳተ ገሞራዎች በረጩት ላቫና በስምጥ መከሰት ምክንያት ነው።";
-      }
-    } else {
-      // English / Syntax General
       stream = "Both";
       const engType = i % 2;
       if (engType === 0) {

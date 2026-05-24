@@ -1,6 +1,6 @@
 {
   "name": "Aksum VIP Academy",
   "description": "Premium Ethiopian VIP educational hub inspired by the history of Aksum, featuring ESSLCE preparation, local university databases, and personalized AI companion.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

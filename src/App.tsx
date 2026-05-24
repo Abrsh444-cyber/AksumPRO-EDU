@@ -133,15 +133,20 @@ export default function App(): JSX.Element {
   // Load completed minutes from localstorage
   const [completedMinutes, setCompletedMinutes] = useState<number>(() => {
     const cached = localStorage.getItem('aksum_study_minutes');
-    return cached ? parseInt(cached, 10) : 120; // 120 default focused minutes
+    return cached ? parseInt(cached, 10) : 0; // 0 default focused minutes
   });
 
   // Load and Save states from local storage safely
   const [studentInfo, setStudentInfo] = useState<StudentInfo>(() => {
     const cached = localStorage.getItem('aksum_student_info');
+    const rememberMeStatus = localStorage.getItem('aksum_remember_me');
     if (cached) {
       try {
-        return JSON.parse(cached);
+        const parsed = JSON.parse(cached);
+        if (rememberMeStatus === 'false') {
+          return { ...parsed, isRegistered: false };
+        }
+        return parsed;
       } catch (e) {
         console.error(e);
       }
@@ -160,6 +165,17 @@ export default function App(): JSX.Element {
       isRegistered: false
     };
   });
+
+  // Onboarding & Remember Me inputs
+  const [onboardingMode, setOnboardingMode] = useState<'register' | 'signin'>('register');
+  const [rememberMe, setRememberMe] = useState<boolean>(() => {
+    return localStorage.getItem('aksum_remember_me') !== 'false'; // default to true
+  });
+  const [passwordInput, setPasswordInput] = useState<string>('');
+  
+  // Sign In inputs
+  const [signinIdentifier, setSigninIdentifier] = useState<string>('');
+  const [signinPassword, setSigninPassword] = useState<string>('');
 
   // Custom University list state
   const [universities, setUniversities] = useState<University[]>(() => {
@@ -237,11 +253,48 @@ export default function App(): JSX.Element {
 
   // Sync Student Registration locally
   const registerStudent = (info: StudentInfo) => {
-    const nextInfo = { ...info, isRegistered: true };
+    const nextInfo = { ...info, password: passwordInput, isRegistered: true };
     setStudentInfo(nextInfo);
     setLang(info.preferredLanguage);
+    localStorage.setItem('aksum_remember_me', rememberMe ? 'true' : 'false');
     localStorage.setItem('aksum_student_info', JSON.stringify(nextInfo));
     showToast(lang === 'amh' ? '🎉 ምዝገባው በተሳካ ሁኔታ ተጠናቋል!' : '🎉 Registration completed successfully!');
+  };
+
+  const handleSignIn = () => {
+    const cached = localStorage.getItem('aksum_student_info');
+    if (!cached) {
+      showToast(lang === 'amh' ? '⚠️ ምንም የተመዘገበ አካውንት የለም! እባክዎ አስቀድመው ይመዝገቡ።' : '⚠️ No registered account found! Please register first.');
+      setOnboardingMode('register');
+      return;
+    }
+    try {
+      const parsed: StudentInfo = JSON.parse(cached);
+      const cleanedIdentifier = signinIdentifier.trim().toLowerCase();
+      const cachedName = (parsed.name || '').trim().toLowerCase();
+      const cachedPhone = (parsed.phone || '').trim().toLowerCase();
+      
+      if (!signinIdentifier.trim() || !signinPassword) {
+        showToast(lang === 'amh' ? '⚠️ እባክዎ የስልክ ቁጥር/ሙሉ ስም እና የይለፍ ቃል ያስገቡ!' : '⚠️ Please enter login name/phone and password!');
+        return;
+      }
+
+      const isMatching = cleanedIdentifier === cachedName || cleanedIdentifier === cachedPhone;
+      // Accept either stored password, or match anything if they hadn't previously set any password (default empty pass)
+      const isPasswordMatching = !parsed.password || signinPassword === parsed.password;
+
+      if (isMatching && isPasswordMatching) {
+        const nextInfo = { ...parsed, isRegistered: true };
+        setStudentInfo(nextInfo);
+        localStorage.setItem('aksum_remember_me', rememberMe ? 'true' : 'false');
+        localStorage.setItem('aksum_student_info', JSON.stringify(nextInfo));
+        showToast(lang === 'amh' ? '🎉 እንኳን ደህና መጡ! በተሳካ ሁኔታ ገብተዋል።' : '🎉 Welcome back! Signed in successfully.');
+      } else {
+        showToast(lang === 'amh' ? '❌ የተሳሳተ የስልክ/ስም ወይም የይለፍ ቃል!' : '❌ Invalid credentials or password!');
+      }
+    } catch (e) {
+      showToast('Error during sign in process.');
+    }
   };
 
   const showToast = (msg: string) => {
@@ -724,100 +777,197 @@ export default function App(): JSX.Element {
                   </button>
                 </div>
 
-                {/* Onboarding fields (All conform to Minimum 48px heights with Native Feel) */}
-                <div className="space-y-4 p-4 rounded-2xl border border-[#cca43b]/15 bg-black/40">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-vip-gold flex items-center gap-1.5">
-                    <User className="w-4 h-4" />
-                    {lang === 'amh' ? 'የተማሪው መመዝገቢያ ፎርም' : 'Admission Enrollment Info'}
-                  </p>
+                {/* Onboarding Mode Selector (Register / Sign In) */}
+                <div className="grid grid-cols-2 p-1 rounded-xl bg-vip-slate/40 border border-[#cca43b]/15">
+                  <button 
+                    type="button"
+                    onClick={() => setOnboardingMode('register')}
+                    className={`py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 px-1 cursor-pointer min-h-[40px] ${
+                      onboardingMode === 'register' 
+                        ? 'bg-gradient-to-r from-vip-gold to-yellow-600 text-black shadow-md' 
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    🔬 {lang === 'amh' ? 'አዲስ ምዝገባ' : 'Register'}
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setOnboardingMode('signin')}
+                    className={`py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 px-1 cursor-pointer min-h-[40px] ${
+                      onboardingMode === 'signin' 
+                        ? 'bg-gradient-to-r from-vip-gold to-yellow-600 text-black shadow-md' 
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    🔑 {lang === 'amh' ? 'አባላት መግቢያ' : 'Sign In'}
+                  </button>
+                </div>
 
-                  <div className="space-y-4">
-                    {/* Full Name */}
-                    <div className="space-y-1">
-                      <label className="text-[11px] text-[#94a3b8] block px-0.5">{lang === 'amh' ? 'ሙሉ ስም (Full Name)' : 'Student Name'}</label>
-                      <input 
-                        type="text" 
-                        placeholder={lang === 'amh' ? 'ለምሳሌ፡ ዮናታን በየነ' : 'e.g., Yonatan Bevene'}
-                        className="w-full h-12 px-4 rounded-xl border border-slate-800 bg-vip-slate/40 text-white outline-none focus:border-vip-gold focus:bg-vip-slate/60 transition text-sm min-h-[48px]"
-                        value={studentInfo.name}
-                        onChange={(e) => setStudentInfo({ ...studentInfo, name: e.target.value })}
-                      />
-                    </div>
+                {/* Main Auth Form Details */}
+                {onboardingMode === 'register' ? (
+                  <div className="space-y-4 p-4 rounded-2xl border border-[#cca43b]/15 bg-black/40 animate-fade-in">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-vip-gold flex items-center gap-1.5">
+                      <User className="w-4 h-4" />
+                      {lang === 'amh' ? 'የተማሪው አዲስ መመዝገቢያ' : 'Create Admission Enrollment Profile'}
+                    </p>
 
-                    {/* School Name */}
-                    <div className="space-y-1">
-                      <label className="text-[11px] text-[#94a3b8] block px-0.5">{lang === 'amh' ? 'ትምህርት ቤት (High School)' : 'High School'}</label>
-                      <input 
-                        type="text" 
-                        placeholder={lang === 'amh' ? 'ለምሳሌ፡ የካ የዝግጅት ት/ቤት' : 'e.g., Yeka Secondary Preparatory'}
-                        className="w-full h-12 px-4 rounded-xl border border-slate-800 bg-vip-slate/40 text-white outline-none focus:border-vip-gold focus:bg-vip-slate/60 transition text-sm min-h-[48px]"
-                        value={studentInfo.school}
-                        onChange={(e) => setStudentInfo({ ...studentInfo, school: e.target.value })}
-                      />
-                    </div>
+                    <div className="space-y-4">
+                      {/* Full Name */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-[#94a3b8] block px-0.5">{lang === 'amh' ? 'ሙሉ ስም (Full Name)' : 'Student Name'}</label>
+                        <input 
+                          type="text" 
+                          placeholder={lang === 'amh' ? 'ለምሳሌ፡ ዮናታን በየነ' : 'e.g., Yonatan Bevene'}
+                          className="w-full h-12 px-4 rounded-xl border border-slate-800 bg-vip-slate/40 text-white outline-none focus:border-vip-gold focus:bg-vip-slate/60 transition text-sm min-h-[48px]"
+                          value={studentInfo.name}
+                          onChange={(e) => setStudentInfo({ ...studentInfo, name: e.target.value })}
+                        />
+                      </div>
 
-                    {/* Phone - Native 48px height */}
-                    <div className="space-y-1">
-                      <label className="text-[11px] text-[#94a3b8] block px-0.5">{lang === 'amh' ? 'የስልክ ቁጥር (Mobile)' : 'Phone (e.g. 09...)'}</label>
-                      <input 
-                        type="tel" 
-                        placeholder="0911223344"
-                        className="w-full h-12 px-4 rounded-xl border border-slate-800 bg-vip-slate/40 text-white outline-none focus:border-vip-gold focus:bg-vip-slate/60 transition text-sm min-h-[48px]"
-                        value={studentInfo.phone}
-                        onChange={(e) => setStudentInfo({ ...studentInfo, phone: e.target.value })}
-                      />
-                    </div>
+                      {/* School Name */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-[#94a3b8] block px-0.5">{lang === 'amh' ? 'ትምህርት ቤት (High School)' : 'High School'}</label>
+                        <input 
+                          type="text" 
+                          placeholder={lang === 'amh' ? 'ለምሳሌ፡ የካ የዝግጅት ት/ቤት' : 'e.g., Yeka Secondary Preparatory'}
+                          className="w-full h-12 px-4 rounded-xl border border-slate-800 bg-vip-slate/40 text-white outline-none focus:border-vip-gold focus:bg-vip-slate/60 transition text-sm min-h-[48px]"
+                          value={studentInfo.school}
+                          onChange={(e) => setStudentInfo({ ...studentInfo, school: e.target.value })}
+                        />
+                      </div>
 
-                    {/* Stream selection buttons (at least 48px for finger touch) */}
-                    <div className="space-y-1">
-                      <label className="text-[11px] text-[#94a3b8] block px-0.5">{lang === 'amh' ? 'የትምህርት መስክ (Stream)' : 'Academic Stream'}</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button 
-                          type="button"
-                          onClick={() => setStudentInfo({ ...studentInfo, fieldStream: 'Natural Science' })}
-                          className={`h-12 flex items-center justify-center rounded-xl text-xs font-semibold border transition cursor-pointer min-h-[48px] ${
-                            studentInfo.fieldStream === 'Natural Science' 
-                              ? 'bg-vip-gold text-black border-vip-gold shadow-md' 
-                              : 'bg-vip-slate/30 text-slate-300 border-[#334155]'
-                          }`}
+                      {/* Phone - Native 48px height */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-[#94a3b8] block px-0.5">{lang === 'amh' ? 'የስልክ ቁጥር (Mobile)' : 'Phone Number (e.g. 09...)'}</label>
+                        <input 
+                          type="tel" 
+                          placeholder="0911223344"
+                          className="w-full h-12 px-4 rounded-xl border border-slate-800 bg-vip-slate/40 text-white outline-none focus:border-vip-gold focus:bg-vip-slate/60 transition text-sm min-h-[48px]"
+                          value={studentInfo.phone}
+                          onChange={(e) => setStudentInfo({ ...studentInfo, phone: e.target.value })}
+                        />
+                      </div>
+
+                      {/* Custom Optional Password for sign in */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-[#94a3b8] block px-0.5">{lang === 'amh' ? 'የይለፍ ቃል (Password PIN)' : 'Passcode / PIN Password'}</label>
+                        <input 
+                          type="password" 
+                          placeholder="••••"
+                          className="w-full h-12 px-4 rounded-xl border border-slate-800 bg-vip-slate/40 text-white outline-none focus:border-vip-gold focus:bg-vip-slate/60 transition text-sm min-h-[48px]"
+                          value={passwordInput}
+                          onChange={(e) => setPasswordInput(e.target.value)}
+                        />
+                      </div>
+
+                      {/* Stream selection buttons (at least 48px for finger touch) */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-[#94a3b8] block px-0.5">{lang === 'amh' ? 'የትምህርት መስክ (Stream)' : 'Academic Stream'}</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button 
+                            type="button"
+                            onClick={() => setStudentInfo({ ...studentInfo, fieldStream: 'Natural Science' })}
+                            className={`h-12 flex items-center justify-center rounded-xl text-xs font-semibold border transition cursor-pointer min-h-[48px] ${
+                              studentInfo.fieldStream === 'Natural Science' 
+                                ? 'bg-vip-gold text-black border-vip-gold shadow-md' 
+                                : 'bg-vip-slate/30 text-slate-300 border-[#334155]'
+                            }`}
+                          >
+                            🔬 {lang === 'amh' ? 'ከተፈጥሮ ሳይንስ' : 'Natural Sci'}
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => setStudentInfo({ ...studentInfo, fieldStream: 'Social Science' })}
+                            className={`h-12 flex items-center justify-center rounded-xl text-xs font-semibold border transition cursor-pointer min-h-[48px] ${
+                              studentInfo.fieldStream === 'Social Science' 
+                                ? 'bg-purple-600 text-white border-purple-500 shadow-md' 
+                                : 'bg-vip-slate/30 text-slate-300 border-[#334155]'
+                            }`}
+                          >
+                            📚 {lang === 'amh' ? 'ማኅበራዊ ሳይንስ' : 'Social Sci'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Target University Selection Dropdown - 48px touch friendly */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-[#94a3b8] block px-0.5">{lang === 'amh' ? 'የሚመርጡት ዩኒቨርሲቲ (Target Uni)' : 'Target Admissions Destination'}</label>
+                        <select 
+                          className="w-full h-12 px-3 rounded-xl border border-slate-800 bg-vip-slate/40 text-xs text-white outline-none focus:border-vip-gold transition min-h-[48px] cursor-pointer"
+                          value={studentInfo.targetUniversity}
+                          onChange={(e) => setStudentInfo({ ...studentInfo, targetUniversity: e.target.value })}
                         >
-                          🔬 {lang === 'amh' ? 'ከተፈጥሮ ሳይንስ' : 'Natural Sci'}
-                        </button>
-                        <button 
-                          type="button"
-                          onClick={() => setStudentInfo({ ...studentInfo, fieldStream: 'Social Science' })}
-                          className={`h-12 flex items-center justify-center rounded-xl text-xs font-semibold border transition cursor-pointer min-h-[48px] ${
-                            studentInfo.fieldStream === 'Social Science' 
-                              ? 'bg-purple-600 text-white border-purple-500 shadow-md' 
-                              : 'bg-vip-slate/30 text-slate-300 border-[#334155]'
-                          }`}
-                        >
-                          📚 {lang === 'amh' ? 'ማኅበራዊ ሳይንስ' : 'Social Sci'}
-                        </button>
+                          <option value="Addis Ababa University">Addis Ababa University (🥇 Rank #1)</option>
+                          <option value="Adama Science & Technology University">Adama Science & Technology (ASTU)</option>
+                          <option value="Bahir Dar University">Bahir Dar University</option>
+                          <option value="Hawassa University">Hawassa University</option>
+                          <option value="Jimma University">Jimma University (Research Elite)</option>
+                        </select>
+                      </div>
+
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4 p-4 rounded-2xl border border-[#cca43b]/15 bg-black/40 animate-fade-in text-slate-100">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-vip-gold flex items-center gap-1.5">
+                      <User className="w-4 h-4" />
+                      {lang === 'amh' ? 'ወደ መለያዎ ለመግባት' : 'Sign In with Registered Account'}
+                    </p>
+
+                    <div className="space-y-4">
+                      {/* Name or Phone Identifier */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-[#94a3b8] block px-0.5">
+                          {lang === 'amh' ? 'የስልክ ቁጥር ወይም ሙሉ ስም (Name / Phone)' : 'Full Name or Phone Number'}
+                        </label>
+                        <input 
+                          type="text" 
+                          placeholder={lang === 'amh' ? 'ለምሳሌ፡ 0911...' : 'e.g., Yonatan Bevene or 09...'}
+                          className="w-full h-12 px-4 rounded-xl border border-slate-800 bg-vip-slate/40 text-white outline-none focus:border-vip-gold focus:bg-vip-slate/60 transition text-sm min-h-[48px]"
+                          value={signinIdentifier}
+                          onChange={(e) => setSigninIdentifier(e.target.value)}
+                        />
+                      </div>
+
+                      {/* Password PIN */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-[#94a3b8] block px-0.5">
+                          {lang === 'amh' ? 'የይለፍ ቃል (Password PIN)' : 'Password PIN'}
+                        </label>
+                        <input 
+                          type="password" 
+                          placeholder="••••"
+                          className="w-full h-12 px-4 rounded-xl border border-slate-800 bg-vip-slate/40 text-white outline-none focus:border-vip-gold focus:bg-vip-slate/60 transition text-sm min-h-[48px]"
+                          value={signinPassword}
+                          onChange={(e) => setSigninPassword(e.target.value)}
+                        />
                       </div>
                     </div>
-
-                    {/* Target University Selection Dropdown - 48px touch friendly */}
-                    <div className="space-y-1">
-                      <label className="text-[11px] text-[#94a3b8] block px-0.5">{lang === 'amh' ? 'የሚመርጡት ዩኒቨርሲቲ (Target Uni)' : 'Target Admissions Destination'}</label>
-                      <select 
-                        className="w-full h-12 px-3 rounded-xl border border-slate-800 bg-vip-slate/40 text-xs text-white outline-none focus:border-vip-gold transition min-h-[48px] cursor-pointer"
-                        value={studentInfo.targetUniversity}
-                        onChange={(e) => setStudentInfo({ ...studentInfo, targetUniversity: e.target.value })}
-                      >
-                        <option value="Addis Ababa University">Addis Ababa University (🥇 Rank #1)</option>
-                        <option value="Adama Science & Technology University">Adama Science & Technology (ASTU)</option>
-                        <option value="Bahir Dar University">Bahir Dar University</option>
-                        <option value="Hawassa University">Hawassa University</option>
-                        <option value="Jimma University">Jimma University (Research Elite)</option>
-                      </select>
-                    </div>
-
                   </div>
+                )}
+
+                {/* Session Persistence Toggle - Remember Me (Requirement: "remember them") */}
+                <div className="p-3.5 rounded-xl bg-vip-gold/5 border border-vip-gold/10 flex items-center justify-between">
+                  <label className="flex items-center gap-2.5 cursor-pointer select-none group">
+                    <input 
+                      type="checkbox" 
+                      className="w-4.5 h-4.5 accent-vip-gold rounded border-slate-800 bg-vip-slate cursor-pointer"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                    />
+                    <div className="leading-none text-left">
+                      <span className="text-xs font-bold text-slate-200 group-hover:text-vip-gold transition block">
+                        {lang === 'amh' ? 'የእኔን መለያ አስታውስ' : 'Remember Me / Remember Them'}
+                      </span>
+                      <span className="text-[9px] text-[#94a3b8] block mt-0.5">
+                        {lang === 'amh' ? 'በቀጣይ በራስሰር እንዲገባ ይፈቅዳል' : 'Keeps you signed in on reload/startup'}
+                      </span>
+                    </div>
+                  </label>
                 </div>
 
                 {/* Subtext info */}
-                <div className="flex gap-2.5 p-3 rounded-xl border border-purple-900/30 bg-purple-950/10 text-[11px] text-purple-300 leading-relaxed">
+                <div className="flex gap-2.5 p-3 rounded-xl border border-purple-900/30 bg-purple-950/10 text-[11px] text-purple-300 leading-relaxed text-left">
                   <Info className="w-4 h-4 shrink-0 text-purple-400 mt-0.5" />
                   <p>
                     {lang === 'amh' 
@@ -828,19 +978,29 @@ export default function App(): JSX.Element {
               </div>
 
               {/* Submit Button (Native 48px height) */}
-              <button 
-                onClick={() => {
-                  if (!studentInfo.name.trim() || !studentInfo.school.trim() || !studentInfo.phone.trim()) {
-                    showToast('⚠️ Please fill out Name, school & phone to continue!');
-                    return;
-                  }
-                  registerStudent(studentInfo);
-                }}
-                className="w-full h-12 mt-6 rounded-xl font-bold font-display uppercase tracking-wider text-black bg-gradient-to-r from-vip-gold via-yellow-500 to-amber-600 shadow-xl flex items-center justify-center gap-2 text-xs cursor-pointer min-h-[48px] active:scale-95 transition"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>{lang === 'amh' ? 'የጥናት አካዳሚውን ክፈት (Open Academy)' : 'Enter VIP Academics'}</span>
-              </button>
+              {onboardingMode === 'register' ? (
+                <button 
+                  onClick={() => {
+                    if (!studentInfo.name.trim() || !studentInfo.school.trim() || !studentInfo.phone.trim()) {
+                      showToast(lang === 'amh' ? '⚠️ እባክዎ ስም፣ ትምህርት ቤት እና ስልክ ሙሉ ያድርጉ!' : '⚠️ Please fill out Name, school & phone to continue!');
+                      return;
+                    }
+                    registerStudent(studentInfo);
+                  }}
+                  className="w-full h-12 mt-6 rounded-xl font-bold font-display uppercase tracking-wider text-black bg-gradient-to-r from-vip-gold via-yellow-500 to-amber-600 shadow-xl flex items-center justify-center gap-2 text-xs cursor-pointer min-h-[48px] active:scale-95 transition"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>{lang === 'amh' ? 'የጥናት አካዳሚውን ክፈት (Open Academy)' : 'Enter VIP Academics'}</span>
+                </button>
+              ) : (
+                <button 
+                  onClick={handleSignIn}
+                  className="w-full h-12 mt-6 rounded-xl font-bold font-display uppercase tracking-wider text-black bg-gradient-to-r from-vip-gold via-yellow-500 to-amber-600 shadow-xl flex items-center justify-center gap-2 text-xs cursor-pointer min-h-[48px] active:scale-95 transition"
+                >
+                  <User className="w-4 h-4" />
+                  <span>{lang === 'amh' ? 'ወደ አካዳሚው ግባ (Sign In)' : 'Sign In & Enter'}</span>
+                </button>
+              )}
             </div>
           ) : (
             /* ================= HIGH FIDELITY REGISTERED MAIN DASHBOARD ================= */

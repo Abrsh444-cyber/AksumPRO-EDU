@@ -10,6 +10,7 @@ export interface StudentInfo {
   primaryGoal: string;
   preferredLanguage: 'amh' | 'eng';
   isRegistered: boolean;
+  password?: string;
 }
 
 export interface University {

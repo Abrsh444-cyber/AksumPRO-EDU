@@ -1,0 +1,6 @@
+{
+  "appId": "com.aksum.vip.academy",
+  "appName": "Aksum VIP Academy",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}

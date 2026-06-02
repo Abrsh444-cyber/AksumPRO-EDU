@@ -43,10 +43,7 @@ jobs:
           # Install Capacitor core packages
           npm install @capacitor/core @capacitor/cli @capacitor/android
           
-          # Add the Android native folder structure
-          npx cap add android
-          
-          # Copy compiled web assets (dist folder) to the native android wrapper
+          # Sync web assets to android (platform already exists in repo)
           npx cap sync android
 
       # Step 6: Make Gradlew executable and Compile the Android .APK file
@@ -54,7 +51,7 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew clean assembleDebug
 
       # Step 7: Upload the finished installation APK as a GitHub Action Artifact
       - name: Upload Finished APK Artifact

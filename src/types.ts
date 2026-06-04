@@ -80,3 +80,15 @@ export interface ExamHistory {
   total: number;
   percentage: number;
 }
+
+export interface DriveFile {
+  id: string;
+  name: string;
+  mimeType: string;
+  webViewLink?: string;
+  size?: string;
+  createdTime?: string;
+  thumbnailLink?: string;
+  iconLink?: string;
+}
+

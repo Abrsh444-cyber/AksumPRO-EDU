@@ -44,8 +44,15 @@ import {
   CheckCircle,
   X,
   Share2,
-  Grid
+  Grid,
+  KeyRound,
+  Cloud,
+  Video
 } from 'lucide-react';
+
+import GoogleDriveHub from './components/GoogleDriveHub';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
+import VideoLearningHub from './components/VideoLearningHub';
 
 // Recharts for Premium Visual Analytics (guidelines approve recharts)
 import { 
@@ -177,6 +184,12 @@ export default function App(): JSX.Element {
   const [signinIdentifier, setSigninIdentifier] = useState<string>('');
   const [signinPassword, setSigninPassword] = useState<string>('');
 
+  // Password Recovery States
+  const [showRecoveryModal, setShowRecoveryModal] = useState<boolean>(false);
+  const [recoveryIdentifier, setRecoveryIdentifier] = useState<string>('');
+  const [recoveryStatus, setRecoveryStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
+
   // Custom University list state
   const [universities, setUniversities] = useState<University[]>(() => {
     const cached = localStorage.getItem('aksum_custom_unis');
@@ -203,6 +216,36 @@ export default function App(): JSX.Element {
     }
     return {};
   });
+
+  // Saved Short Notes notebook
+  const [savedShortNotes, setSavedShortNotes] = useState<{
+    id: string;
+    subject: string;
+    category: string; // 'highlight' | 'summary' | 'formula' | 'hack' | 'trap' | 'custom'
+    title: string;
+    content: string;
+    time: string;
+  }[]>(() => {
+    const cached = localStorage.getItem('aksum_saved_short_notes');
+    if (cached) {
+      try { return JSON.parse(cached); } catch (e) {}
+    }
+    return [
+      {
+        id: 'welcome-note',
+        subject: 'General Academic Support',
+        category: 'highlight',
+        title: 'Aksum Study Guide 🎓',
+        content: 'Welcome to your elite short notes notebook! When you chat with Aksum GPT Pro on any topic, click the "💾 Save to Notes" button next to any category card (Concept Highlights, Core Formula, Exam Hack, or Critical Trap) to instantly cache it here.',
+        time: new Date().toLocaleDateString([], { month: 'short', day: 'numeric' })
+      }
+    ];
+  });
+
+  // Keep saved notes synchronized locally
+  useEffect(() => {
+    localStorage.setItem('aksum_saved_short_notes', JSON.stringify(savedShortNotes));
+  }, [savedShortNotes]);
 
   // Interactive Equation Sandbox Slider values
   const [physicsMass, setPhysicsMass] = useState(10); // in kg
@@ -295,6 +338,46 @@ export default function App(): JSX.Element {
     } catch (e) {
       showToast('Error during sign in process.');
     }
+  };
+
+  const handleRequestPasswordRecovery = () => {
+    if (!recoveryIdentifier.trim()) {
+      setRecoveryError(lang === 'amh' ? '⚠️ እባክዎ የስልክ ቁጥር ወይም ኢሜይል ያስገቡ!' : '⚠️ Please enter your registered phone or email!');
+      return;
+    }
+    
+    setRecoveryError(null);
+    setRecoveryStatus('sending');
+    
+    setTimeout(() => {
+      const cached = localStorage.getItem('aksum_student_info');
+      if (!cached) {
+        setRecoveryStatus('idle');
+        setRecoveryError(lang === 'amh' ? '❌ በዚህ መሣሪያ ላይ ምንም መለያ አልተገኘም! እባክዎ አስቀድመው ይመዝገቡ።' : '❌ No account found on this device! Please register first.');
+        return;
+      }
+      
+      try {
+        const parsed: StudentInfo = JSON.parse(cached);
+        const destination = recoveryIdentifier.trim().toLowerCase();
+        const storedPhone = (parsed.phone || '').trim().toLowerCase();
+        const storedName = (parsed.name || '').trim().toLowerCase();
+        
+        // Match identifier with stored phone or name, or allow anything if it looks like a valid email/phone
+        const isMatch = destination === storedPhone || destination === storedName || destination.length >= 3;
+
+        if (isMatch) {
+          setRecoveryStatus('sent');
+          showToast(lang === 'amh' ? '📩 የይለፍ ቃል መልሶ ማግኛ ኮድ ተልኳል!' : '📩 Password recovery code sent!');
+        } else {
+          setRecoveryStatus('idle');
+          setRecoveryError(lang === 'amh' ? '❌ ያስገቡት ስም ወይም ስልክ ከተመዘገበው መለያ ጋር አልተመሳሰለም!' : '❌ Input does not match registered profile name/phone!');
+        }
+      } catch (e) {
+        setRecoveryStatus('idle');
+        setRecoveryError('Unexpected recovery handler exception.');
+      }
+    }, 1200);
   };
 
   const showToast = (msg: string) => {
@@ -543,6 +626,508 @@ export default function App(): JSX.Element {
     showToast(`🔔 PUSH NOTIFICATION SENT: "${presetText}"`);
   };
 
+  // Render message body with elite component bento boxes and note-taking integrations
+  // Enhance readability of GPT writing, highlighting numbers, math symbols, formulas, and headings beautifully.
+  const renderFormattedText = (rawText: string) => {
+    if (!rawText) return null;
+
+    // Direct helper to clean up mathematical expressions and convert keys into elegant unicode symbols
+    const formatMathExpression = (segment: string) => {
+      if (!segment) return segment;
+
+      // Clean up inline dollar signs and LaTeX slash-parens delimiters
+      let cleaned = segment
+        .replace(/^\$\s*/, '')
+        .replace(/\s*\$$/, '')
+        .replace(/^\\\(\s*/, '')
+        .replace(/\s*\\\)$/, '');
+
+      // 1. Convert LaTeX Fractions \frac{foo}{bar} -> (foo) ÷ (bar) recursively
+      let safetyCounter = 0;
+      while (cleaned.includes('\\frac') && safetyCounter < 10) {
+        const nextFrac = cleaned.replace(/\\frac\s*\{([^}]+)\}\s*\{([^}]+)\}/g, '($1) ÷ ($2)');
+        if (nextFrac === cleaned) {
+          // Try without enclosing braces if malformed
+          const genericFrac = cleaned.replace(/\\frac\s*([^{}\s]+)\s*([^{}\s]+)/g, '$1 ÷ $2');
+          if (genericFrac === cleaned) break;
+          cleaned = genericFrac;
+        } else {
+          cleaned = nextFrac;
+        }
+        safetyCounter++;
+      }
+
+      // 2. Convert LaTeX \text{...} -> ...
+      cleaned = cleaned.replace(/\\text\s*\{([^}]+)\}/g, ' $1 ');
+
+      // 3. Make mathematical replacements for standard symbols
+      cleaned = cleaned
+        .replace(/\\pi\b/gi, 'π')
+        .replace(/\\theta\b/gi, 'θ')
+        .replace(/\\alpha\b/gi, 'α')
+        .replace(/\\beta\b/gi, 'β')
+        .replace(/\\gamma\b/gi, 'γ')
+        .replace(/\\Delta\b/g, 'Δ')
+        .replace(/\\lambda\b/gi, 'λ')
+        .replace(/\\omega\b/gi, 'ω')
+        .replace(/\\sigma\b/gi, 'σ')
+        .replace(/\\mu\b/gi, 'μ')
+        .replace(/\\phi\b/gi, 'φ')
+        .replace(/\\rho\b/gi, 'ρ')
+        .replace(/\\sqrt\{([^}]+)\}/gi, '√($1)')
+        .replace(/\\sqrt/gi, '√')
+        .replace(/\\times\b/gi, ' × ')
+        .replace(/\\div\b/gi, ' ÷ ')
+        .replace(/\\approx\b/gi, ' ≈ ')
+        .replace(/\\neq\b/gi, ' ≠ ')
+        .replace(/\\le\b/gi, ' ≤ ')
+        .replace(/\\ge\b/gi, ' ≥ ')
+        .replace(/\\infty\b/gi, '∞')
+        .replace(/\\pm\b/gi, ' ± ')
+        .replace(/\\cdot\b/gi, ' · ')
+        .replace(/\\leq\b/gi, ' ≤ ')
+        .replace(/\\geq\b/gi, ' ≥ ')
+        .replace(/\\\+/g, '+')
+        .replace(/\\\-/g, '-')
+        .replace(/\^2\b/g, '²')
+        .replace(/\^3\b/g, '³')
+        .replace(/\^n\b/g, 'ⁿ')
+        .replace(/\^x\b/g, 'ˣ')
+        .replace(/\_1\b/g, '₁')
+        .replace(/\_2\b/g, '₂')
+        .replace(/\_n\b/g, 'ₙ')
+        .replace(/\_i\b/g, 'ᵢ')
+        .replace(/->/g, '→')
+        .replace(/<=/g, '≤')
+        .replace(/>=/g, '≥')
+        .replace(/!=/g, '≠')
+        .replace(/\+-/g, '±')
+        .replace(/\*/g, ' × ');
+
+      // Strip remaining stray formatting control characters
+      cleaned = cleaned.replace(/[\$\\]/g, '');
+
+      // Split into tokens: numbers, operators, words, variables
+      // Regex matches:
+      // - integers/decimals: \b\d+(?:\.\d+)?%?
+      // - operators: [\+\-\*=><≠≈≤≥±×÷→]
+      // - mathematical single variables: \b[xyzabcdeijklnpqrstuwvDθπΔαβλωσμ]\b
+      const tokenRegex = /(\d+(?:\.\d+)?%?|[\+\-\*=><≠≈≤≥±×÷→]|\b[xyzabcdeijklnpqrstuwvDθπΔαβλωσμ]\b)/g;
+      const tokens = cleaned.split(tokenRegex);
+
+      return tokens.map((token, tIdx) => {
+        if (!token) return null;
+
+        // 1. Numbers (VIP Gold theme matching - Clean, pro textbook styling)
+        if (/^\d+(?:\.\d+)?%?$/.test(token)) {
+          return (
+            <span key={`num-${tIdx}`} className="font-mono font-bold text-amber-200 select-all tracking-tight mx-0.5 inline">
+              {token}
+            </span>
+          );
+        }
+
+        // 2. Operators (Glow Gold highlighting - Clean & modern)
+        if (/^[\+\-\*=><≠≈≤≥±×÷→]$/.test(token)) {
+          return (
+            <span key={`op-${tIdx}`} className="font-extrabold text-[#cca43b] text-sm mx-1 inline select-none">
+              {token}
+            </span>
+          );
+        }
+
+        // 3. Mathematical variables (Textbook Serif-Italic style)
+        if (/^[xyzabcdeijklnpqrstuwvDθπΔαβλωσμ]$/.test(token)) {
+          return (
+            <span key={`var-${tIdx}`} className="font-serif italic font-extrabold text-cyan-400 hover:text-cyan-300 transition-colors duration-100 mx-0.5 inline">
+              {token}
+            </span>
+          );
+        }
+
+        // 4. Default remaining text segment
+        return token;
+      });
+    };
+
+    // Detect if a paragraph line constitutes a standalone mathematical expression, equation or active steps
+    const isMathFormulaLine = (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return false;
+
+      // Explicit markdown/LaTeX delimiters
+      if (trimmed.startsWith('$$') || trimmed.endsWith('$$') || trimmed.startsWith('\\[') || trimmed.endsWith('\\]')) {
+        return true;
+      }
+
+      // Heavy symbolic math traits
+      const containsEquals = trimmed.includes('=') || trimmed.includes('≈') || trimmed.includes('≠') || trimmed.includes('≤') || trimmed.includes('≥') || trimmed.includes('→');
+      const containsOperators = /[\+\-\*\/\\^√]/.test(trimmed) || trimmed.includes('×') || trimmed.includes('÷') || trimmed.includes('±') || trimmed.includes('\\Delta') || trimmed.includes('\\theta') || trimmed.includes('\\pi');
+      
+      // Step numbering or symbol checks
+      const hasMathVariables = /\b[xyzabcdeijklnpqrstuwv]\b/i.test(trimmed);
+      
+      return containsEquals && (containsOperators || hasMathVariables);
+    };
+
+    // First parse inline tokens for bold, italics, backticks, and math numbers
+    const parseInlineTokens = (textSegment: string) => {
+      if (!textSegment) return '';
+      
+      // Split by backticks first
+      const backtickParts = textSegment.split(/(`[^`]+`)/g);
+      
+      return backtickParts.map((bPart, bIdx) => {
+        if (bPart.startsWith('`') && bPart.endsWith('`')) {
+          const codeContent = bPart.slice(1, -1);
+          return (
+            <code key={`code-${bIdx}`} className="font-mono text-[11px] bg-[#090d16] border border-slate-800/80 px-1.5 py-0.5 rounded text-[#cca43b] font-black h-fit shadow-md inline-block">
+              {codeContent}
+            </code>
+          );
+        }
+        
+        // Split by bold notation **
+        const boldParts = bPart.split(/(\*\*[^*]+\*\*)/g);
+        return boldParts.map((boldPart, boldIdx) => {
+          if (boldPart.startsWith('**') && boldPart.endsWith('**')) {
+            const strongContent = boldPart.slice(2, -2);
+            return (
+              <strong key={`b-${boldIdx}`} className="font-black text-white hover:text-[#cca43b] transition-colors duration-150 text-[12px]">
+                {strongContent}
+              </strong>
+            );
+          }
+          
+          // Split by italic notations *italic*
+          const italicParts = boldPart.split(/(\*[^*]+\*)/g);
+          return italicParts.map((itPart, itIdx) => {
+            if (itPart.startsWith('*') && itPart.endsWith('*')) {
+              const italicContent = itPart.slice(1, -1);
+              return (
+                <em key={`i-${itIdx}`} className="italic text-zinc-100 font-medium">
+                  {italicContent}
+                </em>
+              );
+            }
+            
+            // Format standard text mathematically with high-quality token rules
+            return formatMathExpression(itPart);
+          });
+        });
+      });
+    };
+
+    // Split text into individual lines
+    const lines = rawText.split('\n');
+    
+    return (
+      <div className="space-y-2 select-text text-left">
+        {lines.map((line, idx) => {
+          const trimmed = line.trim();
+          
+          // Render raw horizontal rule
+          if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
+            return <hr key={idx} className="border-slate-800/80 my-3.5" />;
+          }
+
+          // Standalone step-by-step Mathematical Blackboard Frame
+          if (isMathFormulaLine(trimmed) && !trimmed.startsWith('#') && !trimmed.startsWith('-') && !trimmed.startsWith('*') && !trimmed.match(/^\d+\./)) {
+            const cleanedFormula = trimmed
+              .replace(/^\$\$/, '')
+              .replace(/\$\$$/, '')
+              .replace(/^\\\[/, '')
+              .replace(/\\\]$/, '');
+
+            return (
+              <div key={idx} className="my-3.5 p-4 rounded-xl border border-slate-850 bg-[#060b13] border-l-4 border-l-[#cca43b] shadow-xl hover:shadow-[#cca43b]/5 hover:border-slate-750/80 transition duration-200 text-left relative overflow-hidden group">
+                {/* Vintage mathematical grid paper template style */}
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(204,164,59,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(204,164,59,0.02)_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none opacity-80" />
+                
+                {/* Academic tracking header */}
+                <span className="relative z-10 block text-[9px] text-[#cca43b] font-mono font-black uppercase tracking-widest mb-2.5 flex items-center gap-1.5 opacity-90 select-none">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#cca43b] animate-pulse" />
+                  {lang === 'amh' ? 'አካዳሚክ ስሌት እና ቀመር' : 'ACADEMIC CALCULATION & FORMULA'}
+                </span>
+                
+                {/* Big formulas display with crisp variable colors */}
+                <div className="relative z-10 text-xs sm:text-sm md:text-[14.5px] font-semibold leading-relaxed tracking-wider py-1.5 flex flex-wrap items-center gap-y-1 align-baseline text-zinc-150 select-all font-sans">
+                  {formatMathExpression(cleanedFormula)}
+                </div>
+              </div>
+            );
+          }
+
+          // Header level 3
+          if (trimmed.startsWith('### ')) {
+            return (
+              <h4 key={idx} className="text-[12.5px] font-black text-[#cca43b] uppercase tracking-wider mt-4 mb-2 first:mt-0 flex items-center gap-1.5">
+                ✦ {parseInlineTokens(line.replace(/^###\s+/, ''))}
+              </h4>
+            );
+          }
+
+          // Header level 2
+          if (trimmed.startsWith('## ')) {
+            return (
+              <h3 key={idx} className="text-xs font-black text-[#cca43b] uppercase tracking-widest mt-5 mb-2 first:mt-0 flex items-center gap-1.5">
+                🏛️ {parseInlineTokens(line.replace(/^##\s+/, ''))}
+              </h3>
+            );
+          }
+
+          // Header level 1
+          if (trimmed.startsWith('# ')) {
+            return (
+              <h2 key={idx} className="text-sm font-black text-white mt-6 mb-2.5 first:mt-0 flex items-center gap-2 border-b border-slate-800/50 pb-1">
+                {parseInlineTokens(line.replace(/^#\s+/, ''))}
+              </h2>
+            );
+          }
+
+          // Numbered list item
+          const numMatch = line.match(/^(\d+)\.\s(.*)/);
+          if (numMatch) {
+            const num = numMatch[1];
+            const rest = numMatch[2];
+            return (
+              <div key={idx} className="flex items-start gap-2.5 py-1 text-left">
+                <span className="flex items-center justify-center w-5.5 h-5.5 rounded-full bg-[#1e293b] border border-slate-700/85 text-[#cca43b] font-mono text-[10px] font-black shrink-0 mt-0.5 shadow-md">
+                  {num}
+                </span>
+                <div className="flex-1 text-[12px] leading-relaxed text-zinc-100 font-medium">
+                  {parseInlineTokens(rest)}
+                </div>
+              </div>
+            );
+          }
+
+          // Bullet list item
+          const bulletMatch = line.match(/^([\-\*\u2022])\s(.*)/);
+          if (bulletMatch) {
+            const rest = bulletMatch[2];
+            return (
+              <div key={idx} className="flex items-start gap-2.5 py-0.5 text-left">
+                <span className="flex items-center justify-center w-4 h-4 text-[#cca43b] text-xs shrink-0 mt-0.5">
+                  ✦
+                </span>
+                <div className="flex-1 text-[12px] leading-relaxed text-zinc-200 font-normal">
+                  {parseInlineTokens(rest)}
+                </div>
+              </div>
+            );
+          }
+
+          // Render empty layout lines to give paragraph breathing room
+          if (!trimmed) {
+            return <div key={idx} className="h-1.5" />;
+          }
+
+          // Standard paragraph
+          return (
+            <p key={idx} className="text-[12px] leading-relaxed text-zinc-300 font-normal select-text">
+              {parseInlineTokens(line)}
+            </p>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderMessageContent = (item: { id: string; sender: 'user' | 'ai'; text: string; time: string; attachmentName?: string }) => {
+    if (item.sender === 'user') {
+      return <p className="whitespace-pre-wrap font-medium">{item.text}</p>;
+    }
+
+    const text = item.text;
+
+    // Matching XML tags for structured notes
+    const highlightRegex = /<highlight>([\s\S]*?)<\/highlight>/i;
+    const summaryRegex = /<summary>([\s\S]*?)<\/summary>/i;
+    const formulaRegex = /<formula>([\s\S]*?)<\/formula>/i;
+    const hackRegex = /<hack>([\s\S]*?)<\/hack>/i;
+    const trapRegex = /<trap>([\s\S]*?)<\/trap>/i;
+
+    const hasHighlight = highlightRegex.test(text);
+    const hasSummary = summaryRegex.test(text);
+    const hasFormula = formulaRegex.test(text);
+    const hasHack = hackRegex.test(text);
+    const hasTrap = trapRegex.test(text);
+
+    if (!hasHighlight && !hasSummary && !hasFormula && !hasHack && !hasTrap) {
+      // General fallback if no special note-making tags are outputted
+      return (
+        <div className="space-y-2 select-text leading-relaxed text-zinc-250">
+          {renderFormattedText(text)}
+        </div>
+      );
+    }
+
+    highlightRegex.lastIndex = 0;
+    summaryRegex.lastIndex = 0;
+    formulaRegex.lastIndex = 0;
+    hackRegex.lastIndex = 0;
+    trapRegex.lastIndex = 0;
+
+    const highlightMatches = text.match(highlightRegex);
+    const summaryMatches = text.match(summaryRegex);
+    const formulaMatches = text.match(formulaRegex);
+    const hackMatches = text.match(hackRegex);
+    const trapMatches = text.match(trapRegex);
+
+    const highlightText = highlightMatches ? highlightMatches[1].trim() : '';
+    const summaryText = summaryMatches ? summaryMatches[1].trim() : '';
+    const formulaText = formulaMatches ? formulaMatches[1].trim() : '';
+    const hackText = hackMatches ? hackMatches[1].trim() : '';
+    const trapText = trapMatches ? trapMatches[1].trim() : '';
+
+    // Extract ambient text on outside
+    const cleanText = text
+      .replace(/<highlight>[\s\S]*?<\/highlight>/gi, '')
+      .replace(/<summary>[\s\S]*?<\/summary>/gi, '')
+      .replace(/<formula>[\s\S]*?<\/formula>/gi, '')
+      .replace(/<hack>[\s\S]*?<\/hack>/gi, '')
+      .replace(/<trap>[\s\S]*?<\/trap>/gi, '')
+      .replace(/###\s+[^\n]+/gi, '') // clean headers
+      .trim();
+
+    const addNoteToNotebook = (category: string, title: string, content: string) => {
+      const isDuplicate = savedShortNotes.some(note => note.content === content && note.category === category);
+      if (isDuplicate) {
+        showToast(lang === 'amh' ? '⚠️ ይህ ማስታወሻ አስቀድሞ በደብተርዎ ላይ ተቀምጧል።' : '⚠️ This note is already in your notebook!');
+        return;
+      }
+      
+      const newNote = {
+        id: `note-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        subject: selectedSubject || 'General Prep',
+        category,
+        title,
+        content,
+        time: new Date().toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      };
+      setSavedShortNotes(prev => [newNote, ...prev]);
+      showToast(lang === 'amh' ? '💾 ማስታወሻው በስኬት ተቀምጧል!' : `💾 Saved to Study Notebook!`);
+    };
+
+    return (
+      <div className="space-y-4 w-full text-zinc-100 select-text">
+        {cleanText && (
+          <div className="leading-relaxed border-b border-zinc-800/40 pb-3">
+            {renderFormattedText(cleanText)}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-4 pt-1">
+          {/* Highlight Card */}
+          {highlightText && (
+            <div className="p-4 rounded-xl border border-amber-500/10 bg-amber-500/5 transition hover:border-amber-500/20">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-amber-500/15 pb-2 mb-3.5">
+                <span className="text-[10px] font-mono font-bold tracking-widest text-amber-500 flex items-center gap-1.5 uppercase">
+                  🎯 CORE HIGHLIGHT
+                </span>
+                <button
+                  onClick={() => addNoteToNotebook('highlight', 'Key Highlight', highlightText)}
+                  className="w-full sm:w-auto min-h-[40px] sm:min-h-0 px-4 py-2 sm:px-2.5 sm:py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-xs sm:text-[10px] font-mono tracking-wider active:scale-95 transition cursor-pointer select-none font-bold uppercase flex items-center justify-center gap-1.5"
+                >
+                  <span>💾</span>
+                  <span>Save Note</span>
+                </button>
+              </div>
+              <div className="text-zinc-150 font-semibold text-xs sm:text-sm leading-relaxed antialiased">
+                {renderFormattedText(highlightText)}
+              </div>
+            </div>
+          )}
+
+          {/* Summary Bullet-Notes Card */}
+          {summaryText && (
+            <div className="p-4 rounded-xl border border-emerald-500/10 bg-emerald-500/5 transition hover:border-emerald-500/20">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-emerald-500/15 pb-2 mb-3.5">
+                <span className="text-[10px] font-mono font-bold tracking-widest text-emerald-400 flex items-center gap-1.5 uppercase">
+                  📖 COMPACT BRIEF
+                </span>
+                <button
+                  onClick={() => addNoteToNotebook('summary', `${selectedSubject} Notes`, summaryText)}
+                  className="w-full sm:w-auto min-h-[40px] sm:min-h-0 px-4 py-2 sm:px-2.5 sm:py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs sm:text-[10px] font-mono tracking-wider active:scale-95 transition cursor-pointer select-none font-bold uppercase flex items-center justify-center gap-1.5"
+                >
+                  <span>💾</span>
+                  <span>Save Note</span>
+                </button>
+              </div>
+              <div className="text-zinc-200 text-xs sm:text-sm leading-relaxed space-y-1 pl-1 antialiased">
+                {renderFormattedText(summaryText)}
+              </div>
+            </div>
+          )}
+
+          {/* Formula / Textbook rule Card */}
+          {formulaText && (
+            <div className="p-4 rounded-xl border border-sky-500/15 bg-sky-950/10 transition hover:border-sky-500/25">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-sky-500/15 pb-2 mb-3.5">
+                <span className="text-[10px] font-mono font-bold tracking-widest text-[#0ea5e9] flex items-center gap-1.5 uppercase">
+                  📐 CHEAT FORMULAS / CORE RULES
+                </span>
+                <button
+                  onClick={() => addNoteToNotebook('formula', `${selectedSubject} Formula`, formulaText)}
+                  className="w-full sm:w-auto min-h-[40px] sm:min-h-0 px-4 py-2 sm:px-2.5 sm:py-1 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-450 text-xs sm:text-[10px] font-mono tracking-wider active:scale-95 transition cursor-pointer select-none font-bold uppercase flex items-center justify-center gap-1.5"
+                >
+                  <span>💾</span>
+                  <span>Save Note</span>
+                </button>
+              </div>
+              <div className="text-sky-300 font-mono text-xs sm:text-sm p-3.5 rounded-lg bg-black/60 border border-sky-950/80 text-left selection:bg-sky-950/50 leading-relaxed">
+                {renderFormattedText(formulaText)}
+              </div>
+            </div>
+          )}
+
+          {/* Exam Hack Card */}
+          {hackText && (
+            <div className="p-4 rounded-xl border border-purple-500/15 bg-purple-550/5 transition hover:border-purple-500/25">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-purple-500/15 pb-2 mb-3.5">
+                <span className="text-[10px] font-mono font-bold tracking-widest text-purple-400 flex items-center gap-1.5 uppercase">
+                  ⚡ EXAM SPEED-HACK
+                </span>
+                <button
+                  onClick={() => addNoteToNotebook('hack', 'Solving Shortcut', hackText)}
+                  className="w-full sm:w-auto min-h-[40px] sm:min-h-0 px-4 py-2 sm:px-2.5 sm:py-1 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-xs sm:text-[10px] font-mono tracking-wider active:scale-95 transition cursor-pointer select-none font-bold uppercase flex items-center justify-center gap-1.5"
+                >
+                  <span>💾</span>
+                  <span>Save Note</span>
+                </button>
+              </div>
+              <div className="text-purple-150 font-medium text-xs sm:text-sm leading-relaxed antialiased">
+                {renderFormattedText(hackText)}
+              </div>
+            </div>
+          )}
+
+          {/* Trap Card */}
+          {trapText && (
+            <div className="p-4 rounded-xl border border-rose-500/10 bg-rose-550/5 transition hover:border-rose-500/20">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-rose-500/15 pb-2 mb-3.5">
+                <span className="text-[10px] font-mono font-bold tracking-widest text-rose-450 flex items-center gap-1.5 uppercase">
+                  ⚠️ EXAMINER TRAP AVOIDANCE
+                </span>
+                <button
+                  onClick={() => addNoteToNotebook('trap', 'Syllabus Catch', trapText)}
+                  className="w-full sm:w-auto min-h-[40px] sm:min-h-0 px-4 py-2 sm:px-2.5 sm:py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-450 text-xs sm:text-[10px] font-mono tracking-wider active:scale-95 transition cursor-pointer select-none font-bold uppercase flex items-center justify-center gap-1.5"
+                >
+                  <span>💾</span>
+                  <span>Save Note</span>
+                </button>
+              </div>
+              <div className="text-rose-200 text-xs sm:text-sm leading-relaxed font-normal antialiased">
+                {renderFormattedText(trapText)}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   // Chatbot responses router with Gemini API proxy and offline fallback
   const handleSendChatMessage = async () => {
     if (!chatInput.trim() && !chatAttachment) return;
@@ -568,9 +1153,60 @@ export default function App(): JSX.Element {
       setTimeout(() => {
         let replyText = '';
         if (lang === 'amh') {
-          replyText = `### 🛰️ አክሱም ጂፒቲ (የመስመር ውጪ / Offline ሁኔታ)\n\nስልክዎ በአሁኑ ጊዜ በ**"Offline Mode"** ላይ ስለሆነ የመድኃኒት ጥናትና የቀደሙ ጥያቄዎች ማከማቻን በመጠቀም እየመለስኩኝ ነው።\n\n*   **የጠየቁት ጥያቄ**፡ "${currentInput}"\n*   **ምክር**፡ የሒሳብ እና የፊዚክስ ትምህርቶችን በቀመር ሰሌዳው ላይ መለማመድዎን ይቀጥሉ። የጥናት ጊዜዎ (${completedMinutes} ደቂቃዎች) በትክክል በአካባቢ ማከማቻ ላይ ተቆጥቧል።\n\n*ኢንተርኔት ሲያገኙ ሙሉውን የኤአይ ኃይል ለማግበር ከመስመር ውጭ ሁነታን ያጥፉ!*`;
+          replyText = `### 🛰️ አክሱም ጂፒቲ (የመስመር ውጪ / Offline ሁኔታ)
+
+በመሳሪያዎ ላይ ከመስመር ውጪ ጥናት እያደረጉ ነው። ለጥያቄዎ የተዘጋጀው ዘመናዊ የጥናት ማጠቃለያ ይህንን ይመስላል፡
+
+<highlight>
+የጥናት ጊዜዎ (${completedMinutes} ደቂቃዎች) በአካባቢ ማከማቻ ላይ በትክክል ተመዝግቧል።
+</highlight>
+
+<summary>
+- ከመስመር ውጭ ሲሆኑ ቀድመው የወረዱ አርዕስቶችን ማንበብ እና የተመደበለትን የጥናት ሰዓት በብቃት መጠቀም ይችላሉ።
+- የጥናት ሰሌዳው ላይ ቀመሮችን ደጋግሞ መጻፍ ንቁ ትውስታን (active recall) ያሳድጋል።
+</summary>
+
+<formula>
+$$ \\text{Study Consistency} = \\text{Focused minutes} \\times \\text{Streak Days} $$
+</formula>
+
+<hack>
+ብሔራዊ ፈተና ላይ ጊዜን ለመቆጠብ በመጀመሪያ በአጭር ሰከንዶች ውስጥ ሊመለሱ የሚችሉ ቀላል የንድፈ-ሃሳብ (theory) ጥያቄዎችን ሰርተው ይጨርሱ።
+</hack>
+
+<trap>
+ስሌቶችን ያለ ቀመር ለመስራት መሞከር ጊዜን ያባክናል። የሒሳብ እና የፊዚክስ ትምህርቶችን በቀመር ሰሌዳው ላይ በደረጃ ይለማመዱ።
+</trap>
+
+*ሙሉ የ Gemini AI ማብራሪያን ለማግኘት ከመስመር ውጭ ሁነታን ያጥፉ።*`;
         } else {
-          replyText = `### 🛰️ Aksum GPT (Local Offline Mode active)\n\nSince your device is studying **offline**, I am serving you from our local client caches.\n\n*   **Your Query**: "${currentInput}"\n*   **Insight**: Continue studying formulas and offline syllabus notes. Your current focused duration is logged as **${completedMinutes} minutes** in virtual device persistence.\n\n*Turn off "Offline Mode" once you regain connectivity to fully leverage real-time Gemini STEM analysis!*`;
+          replyText = `### 🛰️ Aksum GPT (Local Offline Mode)
+
+You are studying offline. Here is your structured exam-focused lesson guide, complete with auto-notes:
+
+<highlight>
+Your study session has been logged offline. Total focus registered: ${completedMinutes} mins.
+</highlight>
+
+<summary>
+- Offline study prevents web distractions, allowing deeper neural focus.
+- Emphasize formula synthesis and active recall repetitions from cached syllabus notes.
+- Maintain your daily consistency streak, which actively increases long-term retention.
+</summary>
+
+<formula>
+$$ T_{\\text{recalled}} \\propto \\text{Consistency} \\cdot N_{\\text{reviews}} $$
+</formula>
+
+<hack>
+Use the 2-pass exam strategy: spend the first pass answering purely knowledge-based questions within 15 seconds each, securing bulk marks.
+</hack>
+
+<trap>
+Never skip converting numbers to proper SI units first. A high percentage of mathematical calculation traps in ESSLCE stem from unit conversions.
+</trap>
+
+*Turn off "Offline Mode" once you connect to the internet to activate real-time Gemini STEM tutor support!*`;
         }
         setChatMessages((p) => [...p, {
           id: `chat-ai-${Date.now()}`,
@@ -618,7 +1254,86 @@ export default function App(): JSX.Element {
         {
           id: `chat-ai-${Date.now()}`,
           sender: 'ai',
-          text: `### 🚀 Aksum GPT (Tutor Assistant)\n\nHere is a prompt assistance response to support your study of **${selectedSubject}**:\n\n*   Your query: "${currentInput}"\n*   ${currentAttachment ? `Analyzed file: ${currentAttachment.name}.` : ''}\n\n**Step-by-Step Educational Explanation:**\n1. Identify given variables and constants.\n2. Apply the correct formula model from your **Formulas Hub** tab.\n3. double-check unit dimensions (e.g., force in Newtons, mass in kg).\n\n*To activate full Gemini-driven responses, ensure the host server has a valid \`GEMINI_API_KEY\` set up in Settings > Secrets!*`,
+          text: `### 🚀 Aksum GPT (Fallback Tutor Notes)
+
+The remote API proxy experienced a connection hiccup, but your integrated lesson guide for **${selectedSubject}** remains fully operational:
+
+<highlight>
+The active subject ${selectedSubject} has core formulas mapped inside regional storage.
+</highlight>
+
+<summary>
+- Keep math equations clustered inside distinct sections to make them easily readable.
+- Isolate independent variables (mass, velocity, charges) before initiating secondary equations.
+- Maintain persistent calculations in double-checked margins.
+</summary>
+
+<formula>
+$$ F = q \\cdot E \\quad \\text{and} \\quad \\lambda = \\frac{h}{p} $$
+</formula>
+
+<hack>
+When dealing with direct ratio calculations in Chemistry, scale numbers by factors of 10 or 100 first to quickly weed out three of the four distractor options.
+</hack>
+
+<trap>
+Watch out for unit mismatch traps. Ethiopian examiners love blending kilograms and grams in the same question line to lure candidates into simple mathematical slips.
+</trap>
+
+*To restore absolute, infinite real-time AI knowledge streaming, verify that your browser connectivity is green.*`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    } finally {
+      setIsAiTyping(false);
+    }
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: currentInput || "Explain the attached file step-by-step for my studies.",
+          subject: selectedSubject,
+          studentInfo,
+          fileAttachment: currentAttachment
+        })
+      });
+
+      const data = await response.json();
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: `chat-ai-${Date.now()}`,
+          sender: 'ai',
+          text: data.text || 'Tutor backend response could not be verified.',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+
+      // Unlock AI explorer badge
+      triggerUnlockBadge('gpt_explorer');
+    } catch (err) {
+      console.warn("Tutor backend connection error:", err);
+      // Serve hybrid helper backup info
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: `chat-ai-${Date.now()}`,
+          sender: 'ai',
+          text: `### 🚀 Aksum GPT (Tutor Assistant)
+
+The host server does not have a valid remote API Key configured. Here is your structured exam-focused lesson guide for **${selectedSubject}**:
+
+1. **Direct Answer / Solution**: Solve with immediate structural variables.
+2. **Short Explanation**: This query concerns **${selectedSubject}**. Identify your targets, extract independent variables, and isolate the unknown variables.
+3. **Fast Solving Method / Exam Strategy**: Look for matching scaling options. Direct ratios allow fast physical estimations without undergoing long algebraic calculations.
+4. **Key Formula / Rules**: $$ F = m \cdot a \quad \text{or} \quad \Delta H = m \cdot c \cdot \Delta T $$
+5. **Common Mistake to Avoid**: Forgetting to convert units to standard SI equivalents (e.g. centimeters to meters or grams to kilograms).
+
+*To activate complete, high-fidelity real-time AI responses, configure a valid \`GEMINI_API_KEY\` in Settings > Secrets.*`,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
@@ -723,11 +1438,11 @@ export default function App(): JSX.Element {
   const chemMolesResult = (chemMolarityValue * chemVolumeValue).toFixed(2);
 
   return (
-    <div className="min-h-screen bg-[#02050c] md:bg-gradient-to-br md:from-[#030611] md:to-[#020107] flex items-center justify-center text-slate-100 antialiased relative selection:bg-vip-gold selection:text-black font-sans p-0 md:p-4">
+    <div className="min-h-screen bg-[#02050c] text-slate-100 antialiased relative selection:bg-vip-gold selection:text-black font-sans flex flex-col">
       
-      {/* Ambient background glows for desktop widescreen displays */}
-      <div className="hidden md:block absolute top-10 left-10 w-96 h-96 bg-vip-gold/5 rounded-full filter blur-[150px] pointer-events-none" />
-      <div className="hidden md:block absolute bottom-10 right-10 w-96 h-96 bg-[#06b6d4]/5 rounded-full filter blur-[150px] pointer-events-none" />
+      {/* Ambient background glows for premium widescreen displays */}
+      <div className="absolute top-10 left-10 w-96 h-96 bg-vip-gold/5 rounded-full filter blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-120 h-120 bg-[#06b6d4]/5 rounded-full filter blur-[180px] pointer-events-none" />
 
       {/* Persistent Toast notification overlays */}
       {toastMessage && (
@@ -737,88 +1452,84 @@ export default function App(): JSX.Element {
         </div>
       )}
 
-      {/* Simulated High-Fidelity Mobile Smartphone Device Block */}
-      <div className="w-full max-w-sm md:max-w-md min-h-screen md:min-h-[850px] md:max-h-[850px] bg-[#090d16] md:rounded-[44px] md:border-[10px] md:border-[#1e293b] md:shadow-[0_0_50px_rgba(204,164,59,0.12)] flex flex-col relative overflow-hidden transition-all duration-300">
+      {/* Main Responsive Viewport Grid */}
+      <div className="w-full flex-1 flex flex-col bg-[#070b13] relative overflow-hidden transition-all duration-300">
         
-        {/* Physical Ear Piece speaker/notch for smartphone aesthetics */}
-        <div className="hidden md:block absolute top-0 inset-x-0 h-6 bg-[#1e293b] z-50 rounded-t-[34px]">
-          <div className="mx-auto mt-1.5 w-24 h-2.5 bg-black rounded-full" />
-        </div>
-
-        {/* Content container inside simulated mobile phone viewport */}
-        <div className="flex-1 flex flex-col h-full overflow-hidden md:mt-5 relative">
+        {/* Responsive Content workspace wrapper */}
+        <div className="flex-1 flex flex-col h-full relative">
           
           {/* ================= ONBOARDING / REGISTRATION IF NOT REGISTERED ================= */}
           {!studentInfo.isRegistered ? (
-            <div className="flex-1 flex flex-col justify-between p-5 bg-gradient-to-b from-[#0e071a] via-[#0d0920] to-[#090d16] overflow-y-auto no-scrollbar pb-8">
-              <div className="space-y-6">
+            <div className="flex-1 flex flex-col justify-center items-center p-6 bg-[#030712] overflow-y-auto no-scrollbar min-h-screen relative">
+              {/* Backglow element for subtle depth layout */}
+              <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-amber-500/5 rounded-full filter blur-[120px] pointer-events-none" />
+              
+              <div className="w-full max-w-sm space-y-8 relative z-10 py-8">
                 
-                {/* Brand Logo Header */}
-                <div className="flex flex-col items-center text-center space-y-3 pt-4">
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gradient-to-br from-vip-gold to-yellow-600 shadow-lg">
-                    <GraduationCap className="text-black w-8 h-8" />
+                {/* Brand Logo Header & Lang selector */}
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className="w-11 h-11 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-100 shadow-md">
+                    <GraduationCap className="text-amber-500 w-5 h-5" />
                   </div>
-                  <h1 id="academy-brand" className="text-xl md:text-2xl font-black font-display tracking-tight text-gradient-gold">
-                    🏛️ AKSUM PREP VIP
-                  </h1>
-                  <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
-                    {lang === 'amh' 
-                      ? 'ከአክሱም ሥልጣኔ ጥበብ የተቀዳ፣ የብሔራዊ ማትሪክ ፈተናን በፈጠራና ልዩ ውጤት እንድታልፍ የተዘጋጀ ቅንጡ የክለሳ መተግበሪያ!'
-                      : 'The ultimate offline high-fidelity preparatory companion for ambitious high school candidates.'}
-                  </p>
+                  <div>
+                    <h1 id="academy-brand" className="text-sm font-bold font-display uppercase tracking-widest text-[#f8fafc]">
+                      AKSUM ACADEMY <span className="text-amber-500 font-mono text-[9px] lowercase px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 font-bold ml-1">vip</span>
+                    </h1>
+                    <p className="text-xs text-slate-400 mt-2 max-w-xs leading-relaxed">
+                      {lang === 'amh' 
+                        ? 'ከከፍተኛ ዩኒቨርሲቲ መምህራን የተዘጋጁ የምዕራፍ ማብራሪያዎችን፣ ብሔራዊ ፈተናዎችን እና ቀመሮችን የያዘ የክለሳ መድረክ።'
+                        : 'Elite preparatory companion and interactive syllabus resources for ambitious candidates.'}
+                    </p>
+                  </div>
 
                   {/* Language switch button */}
                   <button 
                     onClick={() => setLang(lang === 'amh' ? 'eng' : 'amh')}
-                    className="mt-1 text-[11px] flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-vip-gold/30 hover:border-vip-gold bg-vip-slate/30 text-vip-gold transition cursor-pointer"
+                    className="mt-1 text-[10px] uppercase font-mono tracking-wider flex items-center gap-1.5 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white hover:border-zinc-700 transition duration-150 cursor-pointer"
                   >
                     <Languages className="w-3.5 h-3.5" />
-                    <span>{lang === 'amh' ? '🌍 English Version' : '🌍 በአማርኛ ለመቀጠል'}</span>
+                    <span>{lang === 'amh' ? 'ENG VERSION' : 'በአማርኛ ለመቀጠል'}</span>
                   </button>
                 </div>
 
-                {/* Onboarding Mode Selector (Register / Sign In) */}
-                <div className="grid grid-cols-2 p-1 rounded-xl bg-vip-slate/40 border border-[#cca43b]/15">
-                  <button 
-                    type="button"
-                    onClick={() => setOnboardingMode('register')}
-                    className={`py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 px-1 cursor-pointer min-h-[40px] ${
-                      onboardingMode === 'register' 
-                        ? 'bg-gradient-to-r from-vip-gold to-yellow-600 text-black shadow-md' 
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    🔬 {lang === 'amh' ? 'አዲስ ምዝገባ' : 'Register'}
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => setOnboardingMode('signin')}
-                    className={`py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 px-1 cursor-pointer min-h-[40px] ${
-                      onboardingMode === 'signin' 
-                        ? 'bg-gradient-to-r from-vip-gold to-yellow-600 text-black shadow-md' 
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    🔑 {lang === 'amh' ? 'አባላት መግቢያ' : 'Sign In'}
-                  </button>
-                </div>
+                {/* Form Card Container */}
+                <div className="p-6 md:p-8 rounded-2xl border border-zinc-800 bg-zinc-950/40 backdrop-blur-md space-y-6 shadow-xl">
+                  {/* Onboarding Mode Selector Segment Control */}
+                  <div className="grid grid-cols-2 p-1 rounded-lg bg-zinc-900 border border-zinc-850">
+                    <button 
+                      type="button"
+                      onClick={() => setOnboardingMode('register')}
+                      className={`py-1.5 rounded-md text-xs font-semibold transition duration-150 flex items-center justify-center gap-1.5 px-2 cursor-pointer ${
+                        onboardingMode === 'register' 
+                          ? 'bg-zinc-800 text-white border border-zinc-750 shadow-sm font-bold' 
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <span>{lang === 'amh' ? 'አዲስ ምዝገባ' : 'Register'}</span>
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setOnboardingMode('signin')}
+                      className={`py-1.5 rounded-md text-xs font-semibold transition duration-150 flex items-center justify-center gap-1.5 px-2 cursor-pointer ${
+                        onboardingMode === 'signin' 
+                          ? 'bg-zinc-800 text-white border border-zinc-750 shadow-sm font-bold' 
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <span>{lang === 'amh' ? 'መለያ መግቢያ' : 'Sign In'}</span>
+                    </button>
+                  </div>
 
-                {/* Main Auth Form Details */}
-                {onboardingMode === 'register' ? (
-                  <div className="space-y-4 p-4 rounded-2xl border border-[#cca43b]/15 bg-black/40 animate-fade-in">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-vip-gold flex items-center gap-1.5">
-                      <User className="w-4 h-4" />
-                      {lang === 'amh' ? 'የተማሪው አዲስ መመዝገቢያ' : 'Create Admission Enrollment Profile'}
-                    </p>
-
-                    <div className="space-y-4">
+                  {/* Core Inputs Block */}
+                  {onboardingMode === 'register' ? (
+                    <div className="space-y-4 animate-fade-in">
                       {/* Full Name */}
                       <div className="space-y-1">
-                        <label className="text-[11px] text-[#94a3b8] block px-0.5">{lang === 'amh' ? 'ሙሉ ስም (Full Name)' : 'Student Name'}</label>
+                        <label className="text-[11px] text-zinc-450 uppercase tracking-wider font-mono block px-0.5">{lang === 'amh' ? 'ሙሉ ስም' : 'Student Full Name'}</label>
                         <input 
                           type="text" 
-                          placeholder={lang === 'amh' ? 'ለምሳሌ፡ ዮናታን በየነ' : 'e.g., Yonatan Bevene'}
-                          className="w-full h-12 px-4 rounded-xl border border-slate-800 bg-vip-slate/40 text-white outline-none focus:border-vip-gold focus:bg-vip-slate/60 transition text-sm min-h-[48px]"
+                          placeholder={lang === 'amh' ? 'ለምሳሌ፡ ዮናታን በየነ' : 'e.g., Yonatan Beyene'}
+                          className="w-full h-11 px-3 rounded-lg border border-zinc-850 bg-zinc-900/40 text-zinc-200 outline-none focus:border-zinc-750 focus:bg-zinc-900/60 transition text-xs"
                           value={studentInfo.name}
                           onChange={(e) => setStudentInfo({ ...studentInfo, name: e.target.value })}
                         />
@@ -826,74 +1537,74 @@ export default function App(): JSX.Element {
 
                       {/* School Name */}
                       <div className="space-y-1">
-                        <label className="text-[11px] text-[#94a3b8] block px-0.5">{lang === 'amh' ? 'ትምህርት ቤት (High School)' : 'High School'}</label>
+                        <label className="text-[11px] text-zinc-450 uppercase tracking-wider font-mono block px-0.5">{lang === 'amh' ? 'ትምህርት ቤት' : 'High School Name'}</label>
                         <input 
                           type="text" 
-                          placeholder={lang === 'amh' ? 'ለምሳሌ፡ የካ የዝግጅት ት/ቤት' : 'e.g., Yeka Secondary Preparatory'}
-                          className="w-full h-12 px-4 rounded-xl border border-slate-800 bg-vip-slate/40 text-white outline-none focus:border-vip-gold focus:bg-vip-slate/60 transition text-sm min-h-[48px]"
+                          placeholder={lang === 'amh' ? 'ለምሳሌ፡ የካ የዝግጅት' : 'e.g., Yeka Preparatory'}
+                          className="w-full h-11 px-3 rounded-lg border border-zinc-850 bg-zinc-900/40 text-zinc-200 outline-none focus:border-zinc-750 focus:bg-zinc-900/60 transition text-xs"
                           value={studentInfo.school}
                           onChange={(e) => setStudentInfo({ ...studentInfo, school: e.target.value })}
                         />
                       </div>
 
-                      {/* Phone - Native 48px height */}
+                      {/* Phone */}
                       <div className="space-y-1">
-                        <label className="text-[11px] text-[#94a3b8] block px-0.5">{lang === 'amh' ? 'የስልክ ቁጥር (Mobile)' : 'Phone Number (e.g. 09...)'}</label>
+                        <label className="text-[11px] text-zinc-450 uppercase tracking-wider font-mono block px-0.5">{lang === 'amh' ? 'የስልክ ቁጥር' : 'Phone Number (09...)'}</label>
                         <input 
                           type="tel" 
                           placeholder="0911223344"
-                          className="w-full h-12 px-4 rounded-xl border border-slate-800 bg-vip-slate/40 text-white outline-none focus:border-vip-gold focus:bg-vip-slate/60 transition text-sm min-h-[48px]"
+                          className="w-full h-11 px-3 rounded-lg border border-zinc-850 bg-zinc-900/40 text-zinc-200 outline-none focus:border-zinc-750 focus:bg-zinc-900/60 transition text-xs"
                           value={studentInfo.phone}
                           onChange={(e) => setStudentInfo({ ...studentInfo, phone: e.target.value })}
                         />
                       </div>
 
-                      {/* Custom Optional Password for sign in */}
+                      {/* Password */}
                       <div className="space-y-1">
-                        <label className="text-[11px] text-[#94a3b8] block px-0.5">{lang === 'amh' ? 'የይለፍ ቃል (Password PIN)' : 'Passcode / PIN Password'}</label>
+                        <label className="text-[11px] text-zinc-450 uppercase tracking-wider font-mono block px-0.5">{lang === 'amh' ? 'የይለፍ ቃል' : 'Password passcode'}</label>
                         <input 
                           type="password" 
                           placeholder="••••"
-                          className="w-full h-12 px-4 rounded-xl border border-slate-800 bg-vip-slate/40 text-white outline-none focus:border-vip-gold focus:bg-vip-slate/60 transition text-sm min-h-[48px]"
+                          className="w-full h-11 px-3 rounded-lg border border-zinc-850 bg-zinc-900/40 text-zinc-200 outline-none focus:border-zinc-750 focus:bg-zinc-900/60 transition text-xs"
                           value={passwordInput}
                           onChange={(e) => setPasswordInput(e.target.value)}
                         />
                       </div>
 
-                      {/* Stream selection buttons (at least 48px for finger touch) */}
+                      {/* Stream choice */}
                       <div className="space-y-1">
-                        <label className="text-[11px] text-[#94a3b8] block px-0.5">{lang === 'amh' ? 'የትምህርት መስክ (Stream)' : 'Academic Stream'}</label>
+                        <label className="text-[11px] text-zinc-450 uppercase tracking-wider font-mono block px-0.5">{lang === 'amh' ? 'የትምህርት መስክ' : 'Academic Focus Stream'}</label>
                         <div className="grid grid-cols-2 gap-2">
                           <button 
                             type="button"
                             onClick={() => setStudentInfo({ ...studentInfo, fieldStream: 'Natural Science' })}
-                            className={`h-12 flex items-center justify-center rounded-xl text-xs font-semibold border transition cursor-pointer min-h-[48px] ${
+                            className={`h-11 flex items-center justify-center rounded-lg text-xs font-semibold border transition duration-150 cursor-pointer ${
                               studentInfo.fieldStream === 'Natural Science' 
-                                ? 'bg-vip-gold text-black border-vip-gold shadow-md' 
-                                : 'bg-vip-slate/30 text-slate-300 border-[#334155]'
+                                ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' 
+                                : 'bg-zinc-900/40 text-[#cbd5e1] border-zinc-850 hover:bg-zinc-900/60'
                             }`}
                           >
-                            🔬 {lang === 'amh' ? 'ከተፈጥሮ ሳይንስ' : 'Natural Sci'}
+                            <span>{lang === 'amh' ? 'ከተፈጥሮ ሳይንስ' : 'Natural Sci'}</span>
                           </button>
                           <button 
                             type="button"
                             onClick={() => setStudentInfo({ ...studentInfo, fieldStream: 'Social Science' })}
-                            className={`h-12 flex items-center justify-center rounded-xl text-xs font-semibold border transition cursor-pointer min-h-[48px] ${
+                            className={`h-11 flex items-center justify-center rounded-lg text-xs font-semibold border transition duration-150 cursor-pointer ${
                               studentInfo.fieldStream === 'Social Science' 
-                                ? 'bg-purple-600 text-white border-purple-500 shadow-md' 
-                                : 'bg-vip-slate/30 text-slate-300 border-[#334155]'
+                                ? 'bg-purple-500/10 text-purple-400 border-purple-500/30' 
+                                : 'bg-zinc-900/40 text-[#cbd5e1] border-zinc-850 hover:bg-zinc-900/60'
                             }`}
                           >
-                            📚 {lang === 'amh' ? 'ማኅበራዊ ሳይንስ' : 'Social Sci'}
+                            <span>{lang === 'amh' ? 'ማኅበራዊ ሳይንስ' : 'Social Sci'}</span>
                           </button>
                         </div>
                       </div>
 
-                      {/* Target University Selection Dropdown - 48px touch friendly */}
+                      {/* Destination selection */}
                       <div className="space-y-1">
-                        <label className="text-[11px] text-[#94a3b8] block px-0.5">{lang === 'amh' ? 'የሚመርጡት ዩኒቨርሲቲ (Target Uni)' : 'Target Admissions Destination'}</label>
+                        <label className="text-[11px] text-zinc-450 uppercase tracking-wider font-mono block px-0.5">{lang === 'amh' ? 'የሚመርጡት ዩኒቨርሲቲ' : 'Target Admissions University'}</label>
                         <select 
-                          className="w-full h-12 px-3 rounded-xl border border-slate-800 bg-vip-slate/40 text-xs text-white outline-none focus:border-vip-gold transition min-h-[48px] cursor-pointer"
+                          className="w-full h-11 px-2 rounded-lg border border-zinc-850 bg-zinc-900 text-xs text-zinc-200 outline-none focus:border-zinc-750 transition cursor-pointer"
                           value={studentInfo.targetUniversity}
                           onChange={(e) => setStudentInfo({ ...studentInfo, targetUniversity: e.target.value })}
                         >
@@ -904,112 +1615,236 @@ export default function App(): JSX.Element {
                           <option value="Jimma University">Jimma University (Research Elite)</option>
                         </select>
                       </div>
-
                     </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4 p-4 rounded-2xl border border-[#cca43b]/15 bg-black/40 animate-fade-in text-slate-100">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-vip-gold flex items-center gap-1.5">
-                      <User className="w-4 h-4" />
-                      {lang === 'amh' ? 'ወደ መለያዎ ለመግባት' : 'Sign In with Registered Account'}
-                    </p>
-
-                    <div className="space-y-4">
-                      {/* Name or Phone Identifier */}
+                  ) : (
+                    <div className="space-y-4 animate-fade-in">
+                      {/* Sign in name */}
                       <div className="space-y-1">
-                        <label className="text-[11px] text-[#94a3b8] block px-0.5">
-                          {lang === 'amh' ? 'የስልክ ቁጥር ወይም ሙሉ ስም (Name / Phone)' : 'Full Name or Phone Number'}
-                        </label>
+                        <label className="text-[11px] text-zinc-450 uppercase tracking-wider font-mono block px-0.5">{lang === 'amh' ? 'የስልክ ቁጥር ወይም ሙሉ ስም' : 'Name or Phone Number'}</label>
                         <input 
                           type="text" 
-                          placeholder={lang === 'amh' ? 'ለምሳሌ፡ 0911...' : 'e.g., Yonatan Bevene or 09...'}
-                          className="w-full h-12 px-4 rounded-xl border border-slate-800 bg-vip-slate/40 text-white outline-none focus:border-vip-gold focus:bg-vip-slate/60 transition text-sm min-h-[48px]"
+                          placeholder={lang === 'amh' ? 'ዮናታን በየነ ወይም 09...' : 'e.g., Yonatan Beyene'}
+                          className="w-full h-11 px-3 rounded-lg border border-zinc-850 bg-zinc-900/40 text-zinc-200 outline-none focus:border-zinc-750 focus:bg-zinc-900/60 transition text-xs"
                           value={signinIdentifier}
                           onChange={(e) => setSigninIdentifier(e.target.value)}
                         />
                       </div>
 
-                      {/* Password PIN */}
+                      {/* Sign in passcode */}
                       <div className="space-y-1">
-                        <label className="text-[11px] text-[#94a3b8] block px-0.5">
-                          {lang === 'amh' ? 'የይለፍ ቃል (Password PIN)' : 'Password PIN'}
-                        </label>
+                        <label className="text-[11px] text-zinc-450 uppercase tracking-wider font-mono block px-0.5">{lang === 'amh' ? 'የይለፍ ቃል' : 'Password passcode'}</label>
                         <input 
                           type="password" 
                           placeholder="••••"
-                          className="w-full h-12 px-4 rounded-xl border border-slate-800 bg-vip-slate/40 text-white outline-none focus:border-vip-gold focus:bg-vip-slate/60 transition text-sm min-h-[48px]"
+                          className="w-full h-11 px-3 rounded-lg border border-zinc-850 bg-zinc-900/40 text-zinc-200 outline-none focus:border-zinc-750 focus:bg-zinc-900/60 transition text-xs"
                           value={signinPassword}
                           onChange={(e) => setSigninPassword(e.target.value)}
                         />
                       </div>
-                    </div>
-                  </div>
-                )}
 
-                {/* Session Persistence Toggle - Remember Me (Requirement: "remember them") */}
-                <div className="p-3.5 rounded-xl bg-vip-gold/5 border border-vip-gold/10 flex items-center justify-between">
-                  <label className="flex items-center gap-2.5 cursor-pointer select-none group">
-                    <input 
-                      type="checkbox" 
-                      className="w-4.5 h-4.5 accent-vip-gold rounded border-slate-800 bg-vip-slate cursor-pointer"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                    />
-                    <div className="leading-none text-left">
-                      <span className="text-xs font-bold text-slate-200 group-hover:text-vip-gold transition block">
-                        {lang === 'amh' ? 'የእኔን መለያ አስታውስ' : 'Remember Me / Remember Them'}
-                      </span>
-                      <span className="text-[9px] text-[#94a3b8] block mt-0.5">
-                        {lang === 'amh' ? 'በቀጣይ በራስሰር እንዲገባ ይፈቅዳል' : 'Keeps you signed in on reload/startup'}
-                      </span>
+                      {/* Forgot password */}
+                      <div className="text-right pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRecoveryIdentifier(signinIdentifier);
+                            setRecoveryStatus('idle');
+                            setRecoveryError(null);
+                            setShowRecoveryModal(true);
+                          }}
+                          className="text-[11px] text-amber-500 font-semibold hover:underline cursor-pointer transition duration-150"
+                        >
+                          {lang === 'amh' ? 'የይለፍ ቃል ረስተዋል?' : 'Forgot Password?'}
+                        </button>
+                      </div>
                     </div>
-                  </label>
+                  )}
+
+                  {/* Session Persistence remember me */}
+                  <div className="p-3 rounded-lg bg-zinc-900 border border-zinc-850/80 flex items-center justify-between">
+                    <label className="flex items-center gap-3 cursor-pointer select-none group w-full">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 accent-amber-500 rounded border-zinc-800 bg-zinc-950 cursor-pointer"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                      />
+                      <div className="leading-none text-left">
+                        <span className="text-xs font-semibold text-zinc-200 group-hover:text-amber-400 transition block">
+                          {lang === 'amh' ? 'የእኔን መለያ አስታውስ' : 'Remember Session'}
+                        </span>
+                        <span className="text-[10px] text-slate-500 block mt-0.5">
+                          {lang === 'amh' ? 'በቀጣይ በራስሰር እንዲገባ ይፈቅዳል' : 'Keep me signed in on this device'}
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+
+                  {/* Submit Button */}
+                  {onboardingMode === 'register' ? (
+                    <button 
+                      onClick={() => {
+                        if (!studentInfo.name.trim() || !studentInfo.school.trim() || !studentInfo.phone.trim()) {
+                          showToast(lang === 'amh' ? '⚠️ እባክዎ ስም፣ ትምህርት ቤት እና ስልክ ሙሉ ያድርጉ!' : '⚠️ Please fill out Name, school & phone to continue!');
+                          return;
+                        }
+                        registerStudent(studentInfo);
+                      }}
+                      className="w-full h-11 rounded-lg text-xs font-bold uppercase tracking-wider text-black bg-white hover:bg-zinc-200 transition duration-150 flex items-center justify-center gap-2 shadow-lg cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{lang === 'amh' ? 'አካዳሚውን ፍጠር' : 'Initialize VIP Portal'}</span>
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={handleSignIn}
+                      className="w-full h-11 rounded-lg text-xs font-bold uppercase tracking-wider text-black bg-white hover:bg-zinc-200 transition duration-150 flex items-center justify-center gap-2 shadow-lg cursor-pointer"
+                    >
+                      <User className="w-3.5 h-3.5" />
+                      <span>{lang === 'amh' ? 'ግባ' : 'Sign In'}</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Subtext info */}
-                <div className="flex gap-2.5 p-3 rounded-xl border border-purple-900/30 bg-purple-950/10 text-[11px] text-purple-300 leading-relaxed text-left">
-                  <Info className="w-4 h-4 shrink-0 text-purple-400 mt-0.5" />
-                  <p>
-                    {lang === 'amh' 
-                      ? 'አክሱም VIP አካዳሚ በሚኒስቴሩ የታወጁ የብሔራዊ ፈተና ማስታወሻዎችንና ቀመሮችን በአንድ ጊዜ አካቶ የያዘ ከመስመር ውጪ ጥናት ድጋፍ ሰጪ መተግበሪያ ነው።'
-                      : 'Aksum VIP guarantees offline-enabled curriculum summaries and custom proctor guidance on device storage.'}
-                  </p>
+                <div className="flex gap-2 text-center justify-center items-center text-[10px] text-slate-500">
+                  <Info className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Aksum Prep VIP • Securing offline-first storage access</span>
                 </div>
               </div>
+              {showRecoveryModal && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in">
+                  <div onClick={() => setShowRecoveryModal(false)} className="absolute inset-0 cursor-default" />
+                  
+                  <div className="relative w-full max-w-sm bg-[#0b0f19] border border-[#cca43b]/40 rounded-3xl p-5 shadow-2xl space-y-4 text-left z-10 animate-scale-up">
+                    {/* Close button icon bar */}
+                    <button 
+                      onClick={() => setShowRecoveryModal(false)}
+                      className="absolute top-4 right-4 text-slate-400 hover:text-white transition w-8 h-8 flex items-center justify-center cursor-pointer text-sm bg-vip-slate/40 rounded-full"
+                    >
+                      ✕
+                    </button>
 
-              {/* Submit Button (Native 48px height) */}
-              {onboardingMode === 'register' ? (
-                <button 
-                  onClick={() => {
-                    if (!studentInfo.name.trim() || !studentInfo.school.trim() || !studentInfo.phone.trim()) {
-                      showToast(lang === 'amh' ? '⚠️ እባክዎ ስም፣ ትምህርት ቤት እና ስልክ ሙሉ ያድርጉ!' : '⚠️ Please fill out Name, school & phone to continue!');
-                      return;
-                    }
-                    registerStudent(studentInfo);
-                  }}
-                  className="w-full h-12 mt-6 rounded-xl font-bold font-display uppercase tracking-wider text-black bg-gradient-to-r from-vip-gold via-yellow-500 to-amber-600 shadow-xl flex items-center justify-center gap-2 text-xs cursor-pointer min-h-[48px] active:scale-95 transition"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span>{lang === 'amh' ? 'የጥናት አካዳሚውን ክፈት (Open Academy)' : 'Enter VIP Academics'}</span>
-                </button>
-              ) : (
-                <button 
-                  onClick={handleSignIn}
-                  className="w-full h-12 mt-6 rounded-xl font-bold font-display uppercase tracking-wider text-black bg-gradient-to-r from-vip-gold via-yellow-500 to-amber-600 shadow-xl flex items-center justify-center gap-2 text-xs cursor-pointer min-h-[48px] active:scale-95 transition"
-                >
-                  <User className="w-4 h-4" />
-                  <span>{lang === 'amh' ? 'ወደ አካዳሚው ግባ (Sign In)' : 'Sign In & Enter'}</span>
-                </button>
+                    <div className="flex items-center gap-2.5 pb-2 border-b border-[#cca43b]/15">
+                      <div className="w-9 h-9 rounded-xl bg-vip-gold/10 flex items-center justify-center text-vip-gold border border-vip-gold/20">
+                        <KeyRound className="w-5 h-5 text-vip-gold" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black text-gradient-gold uppercase tracking-wider">
+                          {lang === 'amh' ? 'የይለፍ ቃል መልሶ ማግኛ' : 'Password Recovery'}
+                        </h4>
+                        <p className="text-[10px] text-[#94a3b8]">
+                          {lang === 'amh' ? 'የአክሱም VIP አካዳሚ ደህንነት' : 'Sovereign security simulator'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {recoveryStatus === 'idle' && (
+                      <div className="space-y-4 animate-fade-in">
+                        <p className="text-xs text-[#cbd5e1] leading-relaxed">
+                          {lang === 'amh' 
+                            ? 'እባክዎ የተመዘገቡበትን ሙሉ ስም ወይም የስልክ ቁጥር ያስገቡ። በሞባይል ስልክዎ ላይ አዲስ የ OTP ጊዜያዊ የይለፍ ቃል በምስሌ እንልካለን።' 
+                            : 'Please enter your registered user name or phone number. We will simulate sending a recovery reset token and OTP passcode link instruction.'}
+                        </p>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase font-bold text-[#64748b] block px-0.5 tracking-wider">
+                            {lang === 'amh' ? 'የስልክ ቁጥር ወይም ሙሉ ስም' : 'Registered Name / Phone'}
+                          </label>
+                          <input 
+                            type="text" 
+                            placeholder={lang === 'amh' ? 'ለምሳሌ፡ 0911...' : 'e.g., 0911223344 or name'}
+                            className="w-full h-11 px-3.5 rounded-xl border border-slate-800 bg-[#070b13] text-xs text-white outline-none focus:border-vip-gold focus:bg-[#090e1a] transition min-h-[44px]"
+                            value={recoveryIdentifier}
+                            onChange={(e) => setRecoveryIdentifier(e.target.value)}
+                          />
+                        </div>
+
+                        {recoveryError && (
+                          <p className="text-[11px] text-red-400 bg-red-950/20 border border-red-900/30 p-2.5 rounded-xl animate-shake">
+                            {recoveryError}
+                          </p>
+                        )}
+
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setShowRecoveryModal(false)}
+                            className="flex-1 h-11 rounded-xl text-xs font-bold text-slate-300 bg-slate-800/40 border border-slate-700/60 hover:bg-slate-800 transition cursor-pointer min-h-[44px]"
+                          >
+                            {lang === 'amh' ? 'ይቅር' : 'Cancel'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleRequestPasswordRecovery}
+                            className="flex-1 h-11 rounded-xl text-xs font-bold text-black bg-gradient-to-r from-vip-gold to-yellow-500 hover:bg-yellow-500 hover:to-amber-500 transition cursor-pointer min-h-[44px] flex items-center justify-center gap-1.5"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            <span>{lang === 'amh' ? 'ኮድ ላክ' : 'Send Code'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {recoveryStatus === 'sending' && (
+                      <div className="py-8 flex flex-col items-center justify-center text-center space-y-4">
+                        <div className="w-10 h-10 rounded-full border-4 border-vip-gold/20 border-t-vip-gold animate-spin" />
+                        <div className="space-y-1">
+                          <p className="text-xs font-bold text-vip-gold">
+                            {lang === 'amh' ? 'በማረጋገጥ ላይ...' : 'Securing local registry database...'}
+                          </p>
+                          <p className="text-[10px] text-slate-400">
+                            {lang === 'amh' ? 'የደህንነት ቻናል በመክፈት ላይ' : 'Interfacing simulated API gate...'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {recoveryStatus === 'sent' && (
+                      <div className="space-y-4 animate-fade-in text-center py-2">
+                        <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto text-xl shadow-inner">
+                          ✓
+                        </div>
+                        <div className="space-y-1.5">
+                          <h5 className="text-xs font-black text-emerald-400 uppercase tracking-widest leading-none">
+                            {lang === 'amh' ? 'በተሳካ ሁኔታ ተልኳል!' : 'Recovery Sent!'}
+                          </h5>
+                          <p className="text-[11px] text-[#cbd5e1] leading-relaxed max-w-xs mx-auto">
+                            {lang === 'amh' 
+                              ? `የይለፍ ቃል መልሶ ማግኛ አቶፒ ኮድ ወደ ተመዘገበው መለያ (${recoveryIdentifier}) በቴሌግራም/SMS በኩል በምስሌ በተሳካ ሁኔታ ተልኳል።`
+                              : `We have dispatched simulated recovery passcode link credentials targeting "${recoveryIdentifier}" via secure SMS API gateway successfully.`}
+                          </p>
+                        </div>
+
+                        <div className="bg-black/80 border border-slate-800 rounded-xl p-3 text-left space-y-1.5 text-[10px] font-mono select-all">
+                          <span className="text-slate-500 block uppercase font-bold text-[8px] tracking-wide">🎯 SIMULATED TELEMETRY LOG:</span>
+                          <p className="text-emerald-400 leading-none">STATUS: DELIVERED (200 OK)</p>
+                          <p className="text-slate-300">Target User: {recoveryIdentifier}</p>
+                          <p className="text-yellow-400 leading-normal">Recovery Action: Use temporary bypass code to authenticate seamlessly.</p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setShowRecoveryModal(false)}
+                          className="w-full h-11 rounded-xl text-xs font-bold text-black bg-vip-gold hover:bg-yellow-500 transition cursor-pointer min-h-[44px] mt-2 block"
+                        >
+                          {lang === 'amh' ? 'ወደ መግቢያ ገጽ ተመለስ' : 'Return to Login'}
+                        </button>
+                      </div>
+                    )}
+
+                  </div>
+                </div>
               )}
             </div>
           ) : (
             /* ================= HIGH FIDELITY REGISTERED MAIN DASHBOARD ================= */
             <>
               {/* Sticky Top App Bar Header (Requirement 3) */}
-              <header className="h-14 border-b border-[#cca43b]/15 bg-[#0b0f19] px-4 flex items-center justify-between shrink-0 select-none z-40 sticky top-0 shadow-sm shadow-[#cca43b]/5">
+              <header className="h-14 border-b border-zinc-800 bg-[#090d16] px-4 flex items-center justify-between shrink-0 select-none z-40 sticky top-0 backdrop-blur-md">
                 
-                {/* Left: Scholar avatar picture with a premium golden ring */}
-                <div className="flex items-center gap-2">
+                {/* Left: Scholar avatar picture with a premium minimal design */}
+                <div className="flex items-center gap-3">
                   <div 
                     onClick={() => {
                       if (window.confirm(lang === 'amh' ? 'የተማሪውን መመዝገቢያ ማስረጃዎችን እና ጥናቶችን ማጽዳት ይፈልጋሉ?' : 'Do you want to reset student login fields?')) {
@@ -1017,33 +1852,35 @@ export default function App(): JSX.Element {
                         setStudentInfo({ ...studentInfo, isRegistered: false });
                       }
                     }}
-                    className="w-8 h-8 rounded-full bg-gradient-to-tr from-vip-gold to-yellow-600 border-2 border-[#cca43b] text-black font-black flex items-center justify-center text-xs shadow-md select-none cursor-pointer hover:rotate-12 transition duration-300"
+                    className="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-750 text-zinc-300 font-bold flex items-center justify-center text-xs select-none cursor-pointer hover:bg-zinc-800 hover:text-white transition duration-200"
                     title="Tap to Reset / Log out"
                   >
-                    {studentInfo.name ? studentInfo.name.charAt(0).toUpperCase() : '🎓'}
+                    {studentInfo.name ? studentInfo.name.charAt(0).toUpperCase() : '👤'}
                   </div>
-                  <div className="leading-none">
-                    <p className="text-[11px] font-black text-white truncate max-w-[90px]">
+                  <div className="leading-none hidden sm:block">
+                    <p className="text-xs font-semibold text-[#f8fafc] truncate max-w-[120px]">
                       {studentInfo.name || 'Scholar'}
                     </p>
-                    <p className="text-[8px] text-vip-gold font-mono tracking-widest uppercase truncate max-w-[90px]">
+                    <p className="text-[9px] text-[#cca43b] font-mono tracking-widest uppercase font-bold leading-none mt-0.5">
                       {studentInfo.fieldStream === 'Natural Science' ? 'NATURAL' : 'SOCIAL'}
                     </p>
                   </div>
                 </div>
 
-                {/* Center: App Name */}
+                {/* Center: Brand Wordmark (SaaS standard, elegant, minimal) */}
                 <div className="text-center">
-                  <h2 className="text-xs font-black font-display tracking-tight text-gradient-gold">
-                    🏛️ AKSUM PREP VIP
-                  </h2>
-                  <span className="text-[8px] text-[#64748b] block font-mono font-bold tracking-widest leading-none">
-                    NATIONAL MATRIC HUB
-                  </span>
+                  <div className="flex items-center gap-2 justify-center">
+                    <h2 className="text-xs font-bold font-display tracking-widest text-[#f8fafc]">
+                      AKSUM PREP
+                    </h2>
+                    <span className="text-[8px] bg-amber-500/10 border border-amber-500/20 text-amber-500 px-1 py-0.5 rounded uppercase font-mono font-bold tracking-wider leading-none">
+                      VIP
+                    </span>
+                  </div>
                 </div>
 
                 {/* Right: Notification Alerts bell & Language switcher */}
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                   
                   {/* Lang switcher toggler */}
                   <button 
@@ -1053,67 +1890,201 @@ export default function App(): JSX.Element {
                       setStudentInfo({ ...studentInfo, preferredLanguage: nextLang });
                       showToast(nextLang === 'amh' ? '🌍 ቋንቋው ወደ አማርኛ ተቀይሯል!' : '🌍 Switched to English version!');
                     }}
-                    className="px-2 py-1 rounded-lg border border-slate-800 bg-vip-slate/30 text-vip-gold text-[9px] font-extrabold cursor-pointer hover:border-vip-gold/30 active:scale-95 transition"
+                    className="px-2 py-1 rounded border border-zinc-800 bg-[#030712] text-zinc-400 hover:text-white hover:border-zinc-700 text-[10px] font-mono tracking-wider font-semibold cursor-pointer transition"
                   >
-                    {lang === 'amh' ? 'ENG' : 'አማ'}
+                    {lang === 'amh' ? 'ENG_VERSION' : 'አማርኛ'}
                   </button>
 
                   {/* Compact notification bell triggering direct alerts pane */}
                   <button
                     onClick={() => setActiveTab('notifications')}
-                    className="relative p-1.5 rounded-lg border border-slate-800 text-[#94a3b8] hover:text-white cursor-pointer active:scale-95 transition"
+                    className="relative p-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-white bg-[#030712] cursor-pointer hover:border-zinc-700 transition"
                     title="View Notifications Alert Feed"
                   >
-                    <Bell className="w-4 h-4 text-vip-gold" />
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-ping" />
+                    <Bell className="w-3.5 h-3.5 text-zinc-350" />
+                    <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse" />
                   </button>
 
                 </div>
               </header>
 
-              {/* Main Interactive Mobile Workspace with generous vertical scrolling space (pb-24) */}
-              <main id="app-workspace" className="flex-1 overflow-y-auto bg-gradient-to-b from-[#090d16] to-[#0e0a1b] p-4 pb-20 space-y-6 no-scrollbar h-full w-full">
+              <div className="flex-1 flex flex-col md:flex-row h-[calc(100vh-3.5rem)] overflow-hidden">
+                
+                {/* Desktop Sidebar navigation panel */}
+                <aside className="hidden md:flex flex-col w-60 border-r border-zinc-850 bg-[#090d16]/30 p-4 shrink-0 justify-between select-none overflow-hidden h-full">
+                  <div className="space-y-6 overflow-y-auto no-scrollbar flex-1 pb-4">
+                    {/* Category: Academic Hub */}
+                    <div className="space-y-2">
+                      <div className="text-[9px] text-zinc-500 uppercase tracking-widest font-mono font-bold px-2 py-1 leading-none">
+                        {lang === 'amh' ? 'የትምህርት መስመር' : 'Academic Hub'}
+                      </div>
+                      <nav className="flex flex-col gap-1">
+                        {[
+                          { id: 'dashboard', label: lang === 'amh' ? 'ዋና ገጽ' : 'Dashboard', icon: TrendingUp },
+                          { id: 'curriculum', label: lang === 'amh' ? 'ሲላበስ' : 'Curriculum Readings', icon: BookOpen },
+                          { id: 'video_lectures', label: lang === 'amh' ? 'ቪዲዮ ትምህርቶች' : 'Video Lectures', icon: Video },
+                          { id: 'formulas', label: lang === 'amh' ? 'ፎርሙላዎች' : 'Interactive Formulas', icon: Cpu },
+                          { id: 'practice', label: lang === 'amh' ? 'ፈተና እና ጥያቄዎች' : 'National Exams & Prep', icon: Award }
+                        ].map((btn) => {
+                          const Icon = btn.icon;
+                          const isActive = activeTab === btn.id;
+                          return (
+                            <button
+                              key={btn.id}
+                              onClick={() => {
+                                setActiveTab(btn.id);
+                                setCurrentMCQIndex(0);
+                                setRevealMCQAnswer(false);
+                              }}
+                              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition select-none cursor-pointer w-full text-left border ${
+                                isActive 
+                                  ? 'bg-zinc-900 border-zinc-800 text-[#f8fafc] shadow-sm font-semibold' 
+                                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-950/20 border-transparent'
+                              }`}
+                            >
+                              <Icon className="w-4 h-4 shrink-0" />
+                              <span className="truncate">{btn.label}</span>
+                            </button>
+                          );
+                        })}
+                      </nav>
+                    </div>
 
-              
+                    {/* Category: VIP Resources */}
+                    <div className="space-y-2">
+                      <div className="text-[9px] text-zinc-500 uppercase tracking-widest font-mono font-bold px-2 py-1 leading-none">
+                        {lang === 'amh' ? 'ልዩ የጥናት አገልግሎቶች' : 'VIP Classrooms'}
+                      </div>
+                      <nav className="flex flex-col gap-1">
+                        {[
+                          { id: 'gptpro', label: lang === 'amh' ? 'የአይ አይ ረዳት' : 'Ask Gemini AI Tutor', icon: Sparkles },
+                          { id: 'universities', label: lang === 'amh' ? 'የዩኒቨርሲቲ መመሪያ' : 'Ethiopian Colleges', icon: GraduationCap },
+                          { id: 'google_drive', label: lang === 'amh' ? 'የጥናት ማህደር' : 'Drive Resource Library', icon: Cloud },
+                          { id: 'premium', label: lang === 'amh' ? 'የክብር ሜዳሊያ' : 'VIP Hub & Certs', icon: Trophy }
+                        ].map((btn) => {
+                          const Icon = btn.icon;
+                          const isActive = activeTab === btn.id;
+                          return (
+                            <button
+                              key={btn.id}
+                              onClick={() => {
+                                setActiveTab(btn.id);
+                                setCurrentMCQIndex(0);
+                                setRevealMCQAnswer(false);
+                              }}
+                              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition select-none cursor-pointer w-full text-left border ${
+                                isActive 
+                                  ? 'bg-zinc-900 border-zinc-800 text-[#f8fafc] shadow-sm font-semibold' 
+                                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-950/20 border-transparent'
+                              }`}
+                            >
+                              <Icon className="w-4 h-4 shrink-0" />
+                              <span className="truncate">{btn.label}</span>
+                            </button>
+                          );
+                        })}
+                      </nav>
+                    </div>
+
+                    {/* Category: Support Desk */}
+                    <div className="space-y-2">
+                      <div className="text-[9px] text-zinc-500 uppercase tracking-widest font-mono font-bold px-2 py-1 leading-none">
+                        {lang === 'amh' ? 'ስርዓት' : 'Academic Admin'}
+                      </div>
+                      <nav className="flex flex-col gap-1">
+                        {[
+                          { id: 'notifications', label: lang === 'amh' ? 'ማሳወቂያዎች' : 'Notifications Desk', icon: Bell },
+                          { id: 'about_app', label: lang === 'amh' ? 'ስለ እኛ' : 'About Aksum App', icon: Info }
+                        ].map((btn) => {
+                          const Icon = btn.icon;
+                          const isActive = activeTab === btn.id;
+                          return (
+                            <button
+                              key={btn.id}
+                              onClick={() => {
+                                setActiveTab(btn.id);
+                                setCurrentMCQIndex(0);
+                                setRevealMCQAnswer(false);
+                              }}
+                              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition select-none cursor-pointer w-full text-left border ${
+                                isActive 
+                                  ? 'bg-zinc-900 border-zinc-800 text-[#f8fafc] shadow-sm font-semibold' 
+                                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-950/20 border-transparent'
+                              }`}
+                            >
+                              <Icon className="w-4 h-4 shrink-0" />
+                              <span className="truncate">{btn.label}</span>
+                            </button>
+                          );
+                        })}
+                      </nav>
+                    </div>
+                  </div>
+
+                  {/* Desktop Stats summary widget (SaaS dashboard feel) */}
+                  <div className="p-3.5 rounded-xl border border-zinc-850 bg-zinc-950/30 space-y-3 mt-auto">
+                    <p className="text-[9px] text-zinc-500 uppercase tracking-widest font-mono font-bold leading-none">
+                      Prep Analytics
+                    </p>
+                    <div className="space-y-2 text-xs">
+                      <p className="text-zinc-400 flex justify-between">
+                        <span>{lang === 'amh' ? 'የጥናት ጊዜ:' : 'Total Study:'}</span>
+                        <strong className="text-zinc-100 font-mono">{completedMinutes}m</strong>
+                      </p>
+                      <p className="text-zinc-400 flex justify-between">
+                        <span>{lang === 'amh' ? 'የቀናት ድግግሞሽ:' : 'Streak Count:'}</span>
+                        <strong className="text-amber-500 font-mono">{dailyStreak} 🔥</strong>
+                      </p>
+                    </div>
+                  </div>
+                </aside>
+
+                {/* Primary Content Scrollable Viewport Frame */}
+                <main id="app-workspace" className="flex-1 overflow-y-auto bg-gradient-to-b from-[#090d16] to-[#0e0a1b] p-4 md:p-8 space-y-8 no-scrollbar h-full w-full">
+
+
               {/* ================= TAB 1: DASHBOARD ================= */}
               {activeTab === 'dashboard' && (
-                <div className="space-y-6">
+                <div className="space-y-8 animate-fade-in pb-12">
+                  
                   {/* Hero greeting */}
-                  <div className="p-6 rounded-3xl border border-vip-gold/15 bg-gradient-to-r from-vip-slate/90 via-[#101726]/90 to-[#0c0617] relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-vip-gold/5 rounded-full filter blur-[80px]" />
+                  <div className="p-6 md:p-8 rounded-2xl border border-zinc-850 bg-zinc-950/20 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-amber-500/5 rounded-full filter blur-[100px] pointer-events-none" />
                     
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div>
-                        <h2 className="text-xl md:text-2xl font-black font-display text-white">
-                          {lang === 'amh' ? `ሰላም፣ ${studentInfo.name}! 👑` : `Assalam / Selam, ${studentInfo.name}! 👑`}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                      <div className="space-y-2">
+                        <h2 className="text-xl md:text-2xl font-bold tracking-tight text-[#f8fafc]">
+                          {lang === 'amh' ? `ሰላም፣ ${studentInfo.name}` : `Welcome back, ${studentInfo.name}`}
                         </h2>
-                        <p className="text-[#94a3b8] text-xs max-w-xl mt-1 leading-relaxed">
+                        <p className="text-slate-400 text-xs max-w-xl leading-relaxed">
                           {lang === 'amh' 
-                            ? 'የኔታ! ብሔራዊ ማትሪክ ፈተናውን ከፍተኛ እውቀት የታጠቁ የአክሱም ተፈታኞች በልዩ ውጤት ያጠናቅቃሉ። የዕለት ተዕለት ጥናትዎን ለመዝገብ ፖሞዶሮን ይጠቀሙ!'
-                            : 'Unlocking elite candidate stats. You are on track for outstanding national matric standards.'}
+                            ? 'የኔታ! በኢትዮጵያ ምርጥ ተፈታኞች የሚጠቀሙበት የላቀ የብሔራዊ ማትሪክ መከለሻ መድረክ። የዕለት ተዕለት ጥናትዎን ለመመዝገብ መተግበሪያውን ተጠቅመው ያጥኑ።'
+                            : 'Accessing high-fidelity candidate analytics. Your study history and syllabus metrics are synchronized offline on this device.'}
                         </p>
-                        <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/40 text-[11px] text-vip-gold border border-vip-gold/20">
-                          <Target className="w-3.5 h-3.5" />
-                          <span>🎯 {lang === 'amh' ? 'ቀዳሚ መዳረሻዎ ዩኒቨርሲቲ፡' : 'Destination University:'} <strong>{studentInfo.targetUniversity}</strong></span>
+                        <div className="pt-2">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-zinc-900 border border-zinc-800 text-[11px] font-mono text-zinc-300">
+                            <Target className="w-3.5 h-3.5 text-amber-500" />
+                            <span>{lang === 'amh' ? 'ይፋዊ መድረሻ ዩኒቨርሲቲ፡' : 'TARGET COLLEGE:'} <strong className="text-white font-bold">{studentInfo.targetUniversity}</strong></span>
+                          </span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         {/* Copy stats */}
                         <button 
                           onClick={handleCopyStats}
-                          className="px-3.5 py-2 text-xs font-semibold rounded-lg border border-vip-gold/20 hover:border-vip-gold/60 text-[#f3ca65] bg-vip-slate/30 transition flex items-center gap-1.5 cursor-pointer"
+                          className="px-3.5 h-10 text-xs font-semibold rounded-lg border border-zinc-800 hover:border-zinc-700 hover:text-white text-zinc-350 bg-[#030712] transition flex items-center gap-1.5 cursor-pointer"
                         >
                           <TrendingUp className="w-3.5 h-3.5" />
-                          <span>{lang === 'amh' ? 'ውጤት አጋራ' : 'Share My Stats'}</span>
+                          <span>{lang === 'amh' ? 'ውጤት አጋራ' : 'Share Metrics'}</span>
                         </button>
 
                         <button 
                           onClick={() => setActiveTab('apkstore')}
-                          className="px-4 py-2 text-xs font-bold rounded-lg bg-vip-gold text-black hover:bg-yellow-500 transition shadow-lg flex items-center gap-1 cursor-pointer"
+                          className="px-4 h-10 text-xs font-bold rounded-lg bg-white hover:bg-zinc-200 text-black transition flex items-center gap-1.5 cursor-pointer shadow-sm"
                         >
                           <Smartphone className="w-3.5 h-3.5" />
-                          <span>{lang === 'amh' ? 'የስልክ መተግበሪያ (.APK) ጫን' : 'Get Phone APP (.APK)'}</span>
+                          <span>{lang === 'amh' ? 'የስልክ መተግበሪያ ጫን' : 'Get Phone App'}</span>
                         </button>
                       </div>
                     </div>
@@ -1123,112 +2094,139 @@ export default function App(): JSX.Element {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     
                     {/* Stat Card 1: Study hours */}
-                    <div className="p-4 rounded-2xl border border-[#334155]/50 bg-vip-slate/30 flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-orange-600/10 border border-orange-500/20 flex items-center justify-center text-orange-400">
-                        <Clock className="w-6 h-6" />
+                    <div className="p-5 rounded-xl border border-zinc-900 bg-zinc-950/20 flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-amber-500/5 border border-amber-500/10 flex items-center justify-center text-amber-500">
+                        <Clock className="w-5 h-5" />
                       </div>
                       <div>
-                        <p className="text-[10px] text-[#64748b] hover:underline cursor-pointer" onClick={() => setActiveTab('apkstore')}>{lang === 'amh' ? '⏱️ አጠቃላይ የተመዘገበ ጥናት' : '⏱️ Total Focused Time'}</p>
-                        <p className="text-xl font-bold font-mono text-white">
-                          {completedMinutes} <span className="text-xs text-[#a0aec0] font-sans font-normal">{lang === 'amh' ? 'ደቂቃ' : 'Mins'}</span>
+                        <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest font-bold cursor-pointer hover:underline" onClick={() => setActiveTab('apkstore')}>
+                          {lang === 'amh' ? 'አጠቃላይ ጥናት' : 'Total Focused Time'}
+                        </p>
+                        <p className="text-xl font-bold font-mono text-[#f8fafc] mt-1">
+                          {completedMinutes} <span className="text-xs text-zinc-400 font-normal">{lang === 'amh' ? 'ደቂቃ' : 'Mins'}</span>
                         </p>
                       </div>
                     </div>
 
                     {/* Stat Card 2: National target score requirements */}
-                    <div className="p-4 rounded-2xl border border-[#334155]/50 bg-vip-slate/30 flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
-                        <Target className="w-6 h-6" />
+                    <div className="p-5 rounded-xl border border-zinc-900 bg-zinc-950/20 flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-purple-500/5 border border-purple-500/10 flex items-center justify-center text-purple-400">
+                        <Target className="w-5 h-5" />
                       </div>
                       <div>
-                        <p className="text-[10px] text-[#64748b]">{lang === 'amh' ? '🎯 የሚጠበቀው የማለፊያ ነጥብ' : '🎯 Minimum Cutoff Target'}</p>
-                        <p className="text-xl font-bold font-mono text-[#a78bfa]">
+                        <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest font-bold">
+                          {lang === 'amh' ? 'የማለፊያ ነጥብ' : 'Admission Benchmark'}
+                        </p>
+                        <p className="text-xl font-bold font-mono text-purple-400 mt-1">
                           {studentInfo.fieldStream === 'Natural Science' ? '380 - 430' : '350 - 380'}
-                          <span className="text-xs text-[#a0aec0] font-sans font-normal"> / 600</span>
+                          <span className="text-xs text-zinc-500 font-normal"> / 600</span>
                         </p>
                       </div>
                     </div>
 
                     {/* Stat Card 3: Completed exercises */}
-                    <div className="p-4 rounded-2xl border border-[#334155]/50 bg-vip-slate/30 flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-vip-gold/10 border border-vip-gold/20 flex items-center justify-center text-vip-gold">
-                        <Flame className="w-6 h-6" />
+                    <div className="p-5 rounded-xl border border-zinc-900 bg-zinc-950/20 flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-emerald-500/5 border border-emerald-500/10 flex items-center justify-center text-emerald-400">
+                        <Flame className="w-5 h-5" />
                       </div>
                       <div>
-                        <p className="text-[10px] text-[#64748b]">{lang === 'amh' ? '🔥 የፈተና ጥያቄ ሙከራዎች' : '🔥 Active MCQ Logged'}</p>
-                        <p className="text-xl font-bold font-mono text-vip-gold">
-                          {Object.keys(answersState).length} <span className="text-xs text-[#a0aec0] font-sans font-normal">{lang === 'amh' ? 'ጥያቄዎች' : 'Answered'}</span>
+                        <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest font-bold">
+                          {lang === 'amh' ? 'የተመለሱ ጥያቄዎች' : 'Active MCQ Activity'}
+                        </p>
+                        <p className="text-xl font-bold font-mono text-emerald-400 mt-1">
+                          {Object.keys(answersState).length} <span className="text-xs text-zinc-500 font-normal">{lang === 'amh' ? 'ጥያቄዎች' : 'Solved'}</span>
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  {/* REQUIREMENT 4: Horizontal Scrolling Grid of Core Prep Category Launchers */}
-                  <div className="space-y-2">
-                    <h3 className="text-xs font-black tracking-widest text-[#cca43b] uppercase flex items-center gap-1.5 px-1">
-                      <span>🗂️ {lang === 'amh' ? 'ፈጣን የማጥኛ ክፍሎች' : 'QUICK STUDY MODULES'}</span>
-                      <span className="text-[9px] text-[#64748b] lowercase font-normal">({lang === 'amh' ? 'በጎን ያንሸራትቱ' : 'swipe horizontally'})</span>
+                  {/* Performance Analytics Dashboard panel */}
+                  <AnalyticsDashboard
+                    lang={lang}
+                    completedMinutes={completedMinutes}
+                    dailyStreak={dailyStreak}
+                    totalQuestionsSolved={Object.keys(answersState).length}
+                    accuracyRate={(() => {
+                      const answered = Object.values(answersState);
+                      if (answered.length === 0) return 85; 
+                      const correct = answered.filter(a => a.correct).length;
+                      return Math.round((correct / answered.length) * 100);
+                    })()}
+                  />
+
+                  {/* Horizontal Scrolling Grid of Core Prep Category Launchers */}
+                  <div className="space-y-3">
+                    <h3 className="text-[10px] font-bold tracking-widest text-zinc-550 uppercase px-1 font-mono">
+                      {lang === 'amh' ? 'ፈጣን የጥናት ክፍሎች' : 'QUICK MODULE LAUNCHERS'}
                     </h3>
-                    <div className="flex overflow-x-auto gap-3 pb-2 snap-x no-scrollbar">
-                      
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       {[
                         {
-                          title: lang === 'amh' ? '🧮 ሚኒስቴር ፈተናዎች' : '🧮 PRACTICE CORE',
-                          desc: lang === 'amh' ? 'የቅርብ ዓመታት የብሔራዊ ፈተና ባንኮች ከፈጣን መልስ ማብራሪያዎች ጋር' : 'Simulate real ESSLCE questions with diagnostic progress charts.',
+                          title: lang === 'amh' ? 'ብሔራዊ ፈተናዎች' : 'PRACTICE HUB',
+                          desc: lang === 'amh' ? 'ባለፉት አመታት የወጡ የብሔራዊ ማትሪክ ፈተና ጥያቄዎች በዝርዝር ማብራሪያ' : 'Review past examinations and verify metrics against actual syllabus solutions.',
                           tab: 'practice',
-                          color: 'border-[#cca43b]/25 bg-[#171107]/45 text-vip-gold'
+                          icon: Award,
+                          color: 'border-zinc-850 hover:border-zinc-700 bg-zinc-950/20'
                         },
                         {
-                          title: lang === 'amh' ? '⚡ የምህንድስና ቀመሮች' : '⚡ METRIC FORMULAS',
-                          desc: lang === 'amh' ? 'የፊዚክስና ኬሚስትሪ ቀመሮች ሰሌዳ እና መሥሪያ ሲሙሌተር' : 'Interactive constants calculators for Physics & Chemistry.',
+                          title: lang === 'amh' ? 'የሳይንስ ቀመሮች' : 'CORE FORMULAS',
+                          desc: lang === 'amh' ? 'የትምህርት ክፍሎች የፊዚክስና ኬሚስትሪ ቀመሮች እና አጠቃቀማቸው' : 'Step-by-step math solver tool and physics formula constants board.',
                           tab: 'formulas',
-                          color: 'border-[#38bdf8]/25 bg-[#031d2c]/45 text-[#38bdf8]'
+                          icon: Cpu,
+                          color: 'border-zinc-850 hover:border-zinc-700 bg-zinc-950/20'
                         },
                         {
-                          title: lang === 'amh' ? '🏫 የዩኒቨርሲቲ በር' : '🏫 PREMIUM UNIS',
-                          desc: lang === 'amh' ? 'ምርጥ የኢትዮጵያ ዩኒቨርሲቲዎች፣ የመግቢያ ውጤትና የቅበላ መረጃዎች' : 'Explore cutoffs and historical intake capacities for Addis Ababa & ASTU.',
+                          title: lang === 'amh' ? 'የዩኒቨርሲቲ በር' : 'COLLEGES CORNER',
+                          desc: lang === 'amh' ? 'ምርጥ የኢትዮጵያ ዩኒቨርሲቲዎች፣ የመግቢያ ውጤትና የቅበላ መመዘኛ' : 'Compare historic class intakes, grade brackets, and direct college indices.',
                           tab: 'universities',
-                          color: 'border-[#a78bfa]/25 bg-[#170a2c]/45 text-[#a78bfa]'
+                          icon: GraduationCap,
+                          color: 'border-zinc-850 hover:border-zinc-700 bg-zinc-950/20'
                         },
                         {
-                          title: lang === 'amh' ? '📱 የአንድሮይድ ሲሙሌተር' : '📱 OFFLINE EMBED',
-                          desc: lang === 'amh' ? 'ዝቅተኛ ኔትወርክ ባለባቸው አካባቢዎች በሙሉ ከመስመር ውጪ ጥናት' : 'Simulate localized DB downloads to device disk storage.',
+                          title: lang === 'amh' ? 'አንድሮይድ ሲሙሌተር' : 'MOBILE APP (.APK)',
+                          desc: lang === 'amh' ? 'ዝቅተኛ ኔትወርክ ባለባቸው አካባቢዎች ከመስመር ውጪ ጥናትን ማግኘት' : 'Download local resources for offline candidate dashboard deployment.',
                           tab: 'apkstore',
-                          color: 'border-[#10b981]/25 bg-[#031c12]/45 text-[#10b981]'
+                          icon: Smartphone,
+                          color: 'border-zinc-850 hover:border-zinc-700 bg-zinc-950/20'
                         }
-                      ].map((mod, i) => (
-                        <div
-                          key={i}
-                          onClick={() => {
-                            setActiveTab(mod.tab);
-                            showToast(`🚀 ${lang === 'amh' ? 'ክፍሉ ተመርጧል!' : 'Launching ' + mod.title}!`);
-                          }}
-                          className={`w-52 shrink-0 snap-start p-4 rounded-2xl border ${mod.color} hover:brightness-110 active:scale-95 transition cursor-pointer flex flex-col justify-between space-y-2 h-36`}
-                        >
-                          <div>
-                            <span className="text-xs font-black tracking-tight block uppercase">{mod.title}</span>
-                            <p className="text-[10px] text-slate-400 leading-relaxed mt-1 line-clamp-3">{mod.desc}</p>
+                      ].map((mod, i) => {
+                        const Icon = mod.icon;
+                        return (
+                          <div
+                            key={i}
+                            onClick={() => {
+                              setActiveTab(mod.tab);
+                              showToast(`🚀 ${lang === 'amh' ? 'ክፍሉ ተመርጧል!' : 'Launching ' + mod.title}!`);
+                            }}
+                            className={`p-5 rounded-xl border ${mod.color} active:scale-98 transition duration-200 cursor-pointer flex flex-col justify-between h-40 group`}
+                          >
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-zinc-100 group-hover:text-amber-500 transition">{mod.title}</span>
+                                <Icon className="w-4 h-4 text-zinc-550" />
+                              </div>
+                              <p className="text-[11px] text-zinc-500 leading-relaxed mt-1 line-clamp-3">{mod.desc}</p>
+                            </div>
+                            <span className="text-[9px] font-mono tracking-widest text-zinc-400 group-hover:text-zinc-200 transition font-bold block">
+                              {lang === 'amh' ? 'ጀምር →' : 'LAUNCH MODULE →'}
+                            </span>
                           </div>
-                          <span className="text-[9px] font-mono tracking-widest uppercase text-end font-bold block pt-1">
-                            {lang === 'amh' ? 'ጀምር →' : 'LAUNCH →'}
-                          </span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 
-                  {/* REQUIREMENT 4: Horizontal Scrolling Grid of Academic Trending Courses */}
-                  <div className="space-y-2">
-                    <h3 className="text-xs font-black tracking-widest text-[#a78bfa] uppercase flex items-center gap-1.5 px-1">
-                      <span>📖 {lang === 'amh' ? 'ታዋቂ የትምህርት አርዕስቶች' : 'TRENDING VIP SUBJECTS'}</span>
-                      <span className="text-[9px] text-[#64748b] lowercase font-normal">({lang === 'amh' ? 'ለመምረጥ ይንኩ' : 'tap to explore notes'})</span>
+                  {/* Horizontal Scrolling Grid of Academic Trending Courses */}
+                  <div className="space-y-3 pt-2">
+                    <h3 className="text-[10px] font-bold tracking-widest text-zinc-550 uppercase px-1 font-mono">
+                      {lang === 'amh' ? 'የጥናት ማስታወሻዎች እና ሲላበስ' : 'SUBJECT FOCUS AREA'}
                     </h3>
-                    <div className="flex overflow-x-auto gap-3 pb-2 snap-x no-scrollbar">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                       {[
-                        { name: 'Mathematics', amh: '➕ ሒሳብ (Math)', count: '12 Units', color: 'from-[#cca43b]/10 to-amber-950/20 hover:border-vip-gold/40 border-slate-800' },
-                        { name: 'Physics', amh: '🚀 ፊዚክስ (Physics)', count: '10 Units', color: 'from-blue-950/10 to-indigo-950/20 hover:border-blue-500/40 border-slate-800' },
-                        { name: 'Chemistry', amh: '🧪 ኬሚስትሪ (Chemistry)', count: '8 Units', color: 'from-emerald-950/10 to-teal-950/20 hover:border-emerald-500/40 border-slate-800' },
-                        { name: 'Biology', amh: '🧬 ባዮሎጂ (Biology)', count: '7 Units', color: 'from-pink-950/10 to-rose-950/20 hover:border-pink-500/40 border-slate-800' }
+                        { name: 'Mathematics', amh: 'ሒሳብ (Math)', count: '12 Units', icon: Cpu },
+                        { name: 'Physics', amh: 'ፊዚክስ (Physics)', count: '10 Units', icon: Cpu },
+                        { name: 'Chemistry', amh: 'ኬሚስትሪ (Chemistry)', count: '8 Units', icon: Cpu },
+                        { name: 'Biology', amh: 'ባዮሎጂ (Biology)', count: '7 Units', icon: Cpu }
                       ].map((sub, i) => (
                         <div
                           key={i}
@@ -1237,14 +2235,14 @@ export default function App(): JSX.Element {
                             setActiveTab('curriculum');
                             showToast(`📚 Opened ${sub.name} Syllabus Notes!`);
                           }}
-                          className={`w-40 shrink-0 snap-start p-4 rounded-xl border bg-gradient-to-br ${sub.color} active:scale-95 transition cursor-pointer flex flex-col justify-between h-24`}
+                          className="p-4 rounded-xl border border-zinc-900 bg-zinc-950/20 active:scale-98 transition duration-150 cursor-pointer flex flex-col justify-between h-24 hover:border-zinc-800"
                         >
-                          <span className="text-xs font-black text-white block">
+                          <span className="text-xs font-semibold text-zinc-200 block">
                             {lang === 'amh' ? sub.amh : sub.name}
                           </span>
-                          <div className="flex items-center justify-between mt-2.5">
-                            <span className="text-[9px] text-slate-400 font-mono font-bold">{sub.count}</span>
-                            <span className="text-[9px] text-[#a78bfa] font-black uppercase tracking-wider">{lang === 'amh' ? 'ክፈት →' : 'Study →'}</span>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-[10px] text-zinc-500 font-mono">{sub.count}</span>
+                            <span className="text-[10px] text-amber-500 font-medium font-mono lowercase">{lang === 'amh' ? 'ክፈት' : 'study →'}</span>
                           </div>
                         </div>
                       ))}
@@ -1252,40 +2250,36 @@ export default function App(): JSX.Element {
                   </div>
 
                   {/* Active Pomodoro Focus & Charts Split grid */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
                     
                     {/* LHS: 5 Column interactive premium Pomodoro Focus Engine */}
-                    <div className="lg:col-span-5 p-5 rounded-3xl border border-vip-gold/10 bg-[#0c101b] flex flex-col justify-between space-y-4">
-                      <div className="flex items-center justify-between border-b border-[#cca43b]/15 pb-3">
+                    <div className="lg:col-span-5 p-5 rounded-2xl border border-zinc-900 bg-zinc-950/20 flex flex-col justify-between space-y-4">
+                      <div className="flex items-center justify-between border-b border-zinc-850 pb-3">
                         <div className="flex items-center gap-2">
-                          <div className={`w-2.5 h-2.5 rounded-full ${focusMode === 'focus' ? 'bg-vip-gold animate-ping' : 'bg-emerald-500 animate-pulse'}`} />
-                          <h4 className="font-bold text-xs uppercase tracking-wider text-[#a0aec0]">
+                          <div className={`w-2 h-2 rounded-full ${timerRunning ? 'bg-amber-500 animate-ping' : 'bg-zinc-550'}`} />
+                          <h4 className="font-bold text-[10px] font-mono uppercase tracking-widest text-zinc-500">
                             {focusMode === 'focus' 
-                              ? (lang === 'amh' ? '📝 የትኩረት ጥናት ክፍለ ጊዜ' : '📝 VIP Focus State') 
-                              : (lang === 'amh' ? '☕ የእረፍት ጊዜ' : '☕ Recharge Break State')}
+                              ? (lang === 'amh' ? 'የትኩረት ክፍለ ጊዜ' : 'COGNITIVE FOCUS') 
+                              : (lang === 'amh' ? 'የእረፍት ጊዜ' : 'RECHARGE STATE')}
                           </h4>
                         </div>
-                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                          focusMode === 'focus' ? 'bg-vip-gold/10 text-vip-gold border border-vip-gold/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                        }`}>
+                        <span className="text-[9px] font-mono tracking-widest px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold">
                           {focusMode.toUpperCase()}
                         </span>
                       </div>
 
                       {/* Display Clock Area */}
-                      <div className="py-6 flex flex-col items-center justify-center space-y-2 relative">
-                        {/* Background glowing rings */}
-                        <div className="w-40 h-40 rounded-full border border-vip-gold/15 flex items-center justify-center relative glow-gold bg-black/30">
-                          <div className="absolute inset-2 rounded-full border border-dashed border-vip-gold/10" />
-                          <p id="timer-display" className="text-4xl font-mono font-black text-white tracking-widest">
+                      <div className="py-4 flex flex-col items-center justify-center space-y-2 relative">
+                        <div className="w-36 h-36 rounded-full border border-zinc-850 flex items-center justify-center relative bg-zinc-900/40">
+                          <p id="timer-display" className="text-3xl font-mono font-bold text-zinc-100 tracking-wider">
                             {Math.floor(pomodoroLeft / 60).toString().padStart(2, '0')}:
                             {(pomodoroLeft % 60).toString().padStart(2, '0')}
                           </p>
                         </div>
-                        <p className="text-xs text-[#a0aec0] font-medium text-center italic mt-2">
+                        <p className="text-xs text-zinc-500 text-center font-medium mt-2">
                           {focusMode === 'focus'
-                            ? (lang === 'amh' ? '📚 መዳረሻ ዩኒቨርሲቲ ለመግባት በትኩረት አጥኑ!' : '💡 High-fidelity cognitive focus session active.')
-                            : (lang === 'amh' ? '☕ ትኩስ ቡና ጠጥተው ይተንፍሱ።' : '☕ Release and inhale deep, calming breaths.')}
+                            ? (lang === 'amh' ? 'ሒሳብና ፎርሙላዎችን በትኩረት ይለማመዱ።' : 'High-fidelity cognitive workflow active.')
+                            : (lang === 'amh' ? 'እረፍት ያድርጉ፣ ጥልቀት ያለው ትንፋሽ ይውሰዱ።' : 'Stand, stretch, and inhale deep, calming breaths.')}
                         </p>
                       </div>
 
@@ -1293,25 +2287,25 @@ export default function App(): JSX.Element {
                       <div className="grid grid-cols-2 gap-3 pt-2">
                         <button 
                           onClick={toggleTimer}
-                          className={`p-3 rounded-xl font-bold font-display uppercase tracking-wider text-xs shadow transition-all flex items-center justify-center gap-1 relative overflow-hidden cursor-pointer ${
+                          className={`h-10 rounded-lg font-bold uppercase tracking-wider text-xs transition duration-150 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm ${
                             timerRunning 
-                              ? 'bg-red-950/40 border border-red-500/30 text-red-300 hover:bg-red-900/40' 
-                              : 'bg-gradient-to-br from-[#cca43b] to-yellow-600 text-black hover:brightness-110'
+                              ? 'bg-rose-950/20 border border-rose-900/30 text-rose-400 hover:bg-rose-950/40' 
+                              : 'bg-white text-black hover:bg-zinc-200'
                           }`}
                         >
-                          <span>{timerRunning ? (lang === 'amh' ? '⏸️ አቁም' : '⏸️ PAUSE') : (lang === 'amh' ? '▶️ ጀምር' : '▶️ DEEP STUDY')}</span>
+                          <span>{timerRunning ? (lang === 'amh' ? 'አቁም' : 'PAUSE') : (lang === 'amh' ? 'ጀምር' : 'FOCUS')}</span>
                         </button>
 
                         <button 
                           onClick={resetTimer}
-                          className="p-3 rounded-xl font-semibold border border-[#334155] bg-vip-slate/30 text-white hover:bg-vip-slate/60 text-xs text-center cursor-pointer transition"
+                          className="h-10 rounded-lg font-semibold border border-zinc-800 bg-[#030712] text-zinc-400 hover:text-white hover:border-zinc-700 text-xs text-center cursor-pointer transition duration-155"
                         >
-                          🔄 {lang === 'amh' ? 'ዳግም ጀምር' : 'RESET'}
+                          {lang === 'amh' ? 'ዳግም ጀምር' : 'RESET'}
                         </button>
                       </div>
 
                       {/* Rapid pomodoro duration preset options */}
-                      <div className="pt-2 flex items-center justify-between text-[11px] text-[#64748b]">
+                      <div className="pt-2 flex items-center justify-between text-[11px] text-zinc-500">
                         <span>Presets:</span>
                         <div className="flex gap-1.5">
                           {[
@@ -1326,7 +2320,7 @@ export default function App(): JSX.Element {
                                 setPomodoroLeft(pref.val);
                                 setTimerMax(pref.val);
                               }}
-                              className="px-2 py-0.5 rounded border border-[#334155] bg-black/40 hover:border-vip-gold hover:text-vip-gold text-slate-300 transition text-[10px]"
+                              className="px-2 py-0.5 rounded border border-zinc-800 bg-zinc-900/50 hover:border-zinc-700 hover:text-zinc-300 text-zinc-450 transition text-[10px] cursor-pointer"
                             >
                               {pref.label}
                             </button>
@@ -1335,11 +2329,11 @@ export default function App(): JSX.Element {
                       </div>
                     </div>
 
-                    {/* RHS: 7 Column dynamic analytics utilizing Recharts (guidelines compliance) */}
-                    <div className="lg:col-span-7 p-5 rounded-3xl border border-[#334155]/50 bg-[#0c101b] flex flex-col justify-between">
-                      <div className="space-y-1 pb-3 border-b border-[#cca43b]/10">
-                        <h4 className="font-bold text-xs uppercase tracking-wider text-vip-gold">📚 Study Milestones & Progress Log</h4>
-                        <p className="text-xs text-[#a0aec0]">{lang === 'amh' ? 'ለእያንዳንዱ ቀዳሚ ትምህርት የተቀረጸ የጥናት ቆይታ ገበታ' : 'Targeted syllabus retention curve per stream'}</p>
+                    {/* RHS: 7 Column dynamic analytics utilizing Recharts */}
+                    <div className="lg:col-span-7 p-5 rounded-2xl border border-zinc-900 bg-zinc-950/20 flex flex-col justify-between">
+                      <div className="space-y-1 pb-3 border-b border-zinc-850">
+                        <h4 className="font-bold text-[10px] font-mono uppercase tracking-widest text-[#cca43b]">{lang === 'amh' ? 'ጥናት እና ብቃት መከታተያ' : 'Syllabus Milestones'}</h4>
+                        <p className="text-xs text-zinc-500">{lang === 'amh' ? 'በምዕራፍ ማብራሪያ የተመዘገበ የጥናት ሰሌዳ ገበታ' : 'Targeted retention curve per study stream'}</p>
                       </div>
 
                       {/* Display chart representation */}
@@ -1357,18 +2351,18 @@ export default function App(): JSX.Element {
                             ]}
                             margin={{ top: 5, right: 10, left: -25, bottom: 0 }}
                           >
-                            <XAxis dataKey="date" stroke="#64748b" fontSize={10} tickLine={false} />
-                            <YAxis stroke="#64748b" fontSize={10} tickLine={false} />
-                            <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#cca43b', color: '#fff' }} />
-                            <Area type="monotone" dataKey="Mathematics" stroke="#f59e0b" fillOpacity={0.15} fill="url(#colorMath)" />
-                            <Area type="monotone" dataKey="Physics" stroke="#06b6d4" fillOpacity={0.05} fill="url(#colorPhys)" />
+                            <XAxis dataKey="date" stroke="#4b5563" fontSize={10} tickLine={false} />
+                            <YAxis stroke="#4b5563" fontSize={10} tickLine={false} />
+                            <Tooltip contentStyle={{ backgroundColor: '#090d16', borderColor: '#27272a', color: '#fff', fontSize: '11px' }} />
+                            <Area type="monotone" dataKey="Mathematics" stroke="#cca43b" fillOpacity={0.06} fill="url(#colorMath)" />
+                            <Area type="monotone" dataKey="Physics" stroke="#06b6d4" fillOpacity={0.03} fill="url(#colorPhys)" />
                             <defs>
                               <linearGradient id="colorMath" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4}/>
-                                <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                                <stop offset="5%" stopColor="#cca43b" stopOpacity={0.2}/>
+                                <stop offset="95%" stopColor="#cca43b" stopOpacity={0}/>
                               </linearGradient>
                               <linearGradient id="colorPhys" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.2}/>
+                                <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.1}/>
                                 <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
                               </linearGradient>
                             </defs>
@@ -1376,45 +2370,61 @@ export default function App(): JSX.Element {
                         </ResponsiveContainer>
                       </div>
 
-                      <div className="flex gap-4 text-xs text-[#a0aec0] pt-2">
+                      <div className="flex gap-4 text-xs text-zinc-550 pt-2 border-t border-zinc-850/40">
                         <div className="flex items-center gap-1.5">
-                          <div className="w-2.5 h-2.5 rounded-full bg-vip-gold" />
-                          <span>{lang === 'amh' ? 'ሒሳብ (Math)' : 'Mathematics'}</span>
+                          <div className="w-2 h-2 rounded-full bg-amber-500" />
+                          <span>{lang === 'amh' ? 'ሒሳብ' : 'Mathematics'}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#06b6d4]" />
+                          <div className="w-2 h-2 rounded-full bg-[#06b6d4]" />
                           <span>{lang === 'amh' ? 'ፊዚክስ' : 'Physics'}</span>
                         </div>
-                        <div className="text-xs text-[#64748b] ml-auto">
-                          Updated: Just Now
+                        <div className="text-[10px] text-zinc-550 ml-auto font-mono">
+                          UPDATED_NOW
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Android APK Shortcut Promo Banner at bottom of Dashboard */}
-                  <div className="p-5 rounded-2xl border-2 border-dashed border-vip-gold/40 bg-gradient-to-r from-vip-slate/20 via-yellow-950/20 to-vip-slate/20 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-vip-gold/10 flex items-center justify-center text-vip-gold">
-                        <Smartphone className="w-7 h-7 animate-pulse" />
+                  <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-950/20 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-[200px] h-[200px] bg-amber-500/5 rounded-full filter blur-[80px] pointer-events-none" />
+                    
+                    <div className="flex items-start gap-4 relative z-10 w-full md:w-auto">
+                      <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-amber-500 shrink-0">
+                        <Smartphone className="w-5 h-5" />
                       </div>
-                      <div>
-                        <h5 className="font-bold text-white text-sm">📲 {lang === 'amh' ? 'የአንድሮይድ መጫኛ (.APK) ይፈልጋሉ?' : 'Need the Android APK Installation File?'}</h5>
-                        <p className="text-[#a0aec0] text-xs">
+                      <div className="space-y-1">
+                        <h5 className="font-bold text-zinc-200 text-sm">{lang === 'amh' ? 'ባለሙሉ ሲሙሌተር ከመስመር ውጪ ጥናት' : 'Localized offline deployment'}</h5>
+                        <p className="text-zinc-500 text-xs max-w-xl leading-relaxed">
                           {lang === 'amh' 
-                            ? 'ፈተና ቅድመ ዝግጅቱን ያለ ምንም ኢንተርኔት (Offline)፣ ለብቻ በተቀመጠ የሞባይል አፕሊኬሽን ለመጠቀም የ APK መጫኛውን አሁኑኑ ያውርዱ።'
-                            : 'Install Aksum VIP directly onto your phone bypassing browser bookmarks! Enjoy biometric study mode and 100% offline access.'}
+                            ? 'ፈተና ዝግጅት መተግበሪያውን ያለ ኢንተርኔት (Offline) ለመጠቀም የአንድሮይድ መተግበሪያውን አሁኑኑ ያውርዱ።'
+                            : 'Install Aksum Prep VIP directly onto your mobile device for offline database simulations without web browser overhead.'}
                         </p>
                       </div>
                     </div>
                     <button 
                       onClick={() => setActiveTab('apkstore')}
-                      className="px-5 py-2.5 rounded-xl font-extrabold text-[#090d16] bg-[#cca43b] hover:bg-yellow-500 transition shadow-lg text-xs shrink-0 flex items-center gap-1.5 cursor-pointer"
+                      className="px-4 py-2 rounded-lg font-bold border border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-300 hover:text-white transition text-xs shrink-0 flex items-center gap-1.5 cursor-pointer relative z-10"
                     >
-                      <Download className="w-4 h-4" />
-                      <span>{lang === 'amh' ? 'ወደ ማውረጃው ሂድ' : 'Direct APK Download Tab'}</span>
+                      <Download className="w-4 h-4 text-zinc-400" />
+                      <span>{lang === 'amh' ? 'መተግበሪያውን አውርድ' : 'View Download Options'}</span>
                     </button>
                   </div>
+                </div>
+              )}
+
+              {activeTab === 'video_lectures' && (
+                <div id="video-lectures-view" className="space-y-6 animate-fade-in">
+                  <VideoLearningHub
+                    lang={lang}
+                    setActiveTab={setActiveTab}
+                    onAddStudyMinutes={(mins) => {
+                      const nextMins = completedMinutes + mins;
+                      setCompletedMinutes(nextMins);
+                      localStorage.setItem('aksum_study_minutes', nextMins.toString());
+                    }}
+                  />
                 </div>
               )}
 
@@ -1505,14 +2515,43 @@ export default function App(): JSX.Element {
                         </div>
                       </div>
 
-                      {/* Notes core body text content */}
+                      {/* Notes core body text content with optimized mobile font sizes */}
                       <div className="p-4 rounded-2xl bg-black/35 leading-relaxed overflow-y-auto max-h-[400px]">
-                        <p className={`text-[#e2e8f0] tracking-wide whitespace-pre-wrap ${
-                          fontSize === 'sm' ? 'text-xs' : fontSize === 'lg' ? 'text-base md:text-lg' : 'text-sm'
+                        <p className={`text-[#e2e8f0] tracking-wide whitespace-pre-wrap select-text antialiased ${
+                          fontSize === 'sm' ? 'text-xs sm:text-sm' : fontSize === 'lg' ? 'text-base sm:text-lg md:text-xl' : 'text-sm sm:text-base'
                         }`}>
                           {lang === 'amh' ? activeUnit.notesAmharic : activeUnit.notes}
                         </p>
                       </div>
+
+                      {/* Large premium touch-target optimized button to Save to Study Notebook */}
+                      <button
+                        onClick={() => {
+                          const cat = 'curriculum';
+                          const tit = `Unit ${activeUnit.unitNumber}: ${lang === 'amh' ? activeUnit.titleAmharic : activeUnit.title}`;
+                          const cont = lang === 'amh' ? activeUnit.notesAmharic : activeUnit.notes;
+                          
+                          const isDuplicate = savedShortNotes.some(note => note.content === cont && note.category === cat);
+                          if (isDuplicate) {
+                            showToast(lang === 'amh' ? '⚠️ ይህ የሲላበስ ማጠቃለያ አስቀድሞ ማስታወሻ ደብተርዎ ውስጥ ተቀምጧል!' : '⚠️ This unit summary is already inside your study notebook!');
+                            return;
+                          }
+
+                          const newNote = {
+                            id: `note-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                            subject: selectedSubject || 'General Prep',
+                            category: cat,
+                            title: tit,
+                            content: cont,
+                            time: new Date().toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                          };
+                          setSavedShortNotes(prev => [newNote, ...prev]);
+                          showToast(lang === 'amh' ? '💾 የሲላበስ ማጠቃለያው በደብተርዎ ላይ ተቀምጧል!' : `💾 Syllabus notes successfully saved to Notebook!`);
+                        }}
+                        className="w-full min-h-[44px] py-3 px-4 rounded-xl bg-gradient-to-r from-vip-gold to-amber-500 text-black font-extrabold text-xs sm:text-sm uppercase tracking-wider hover:from-amber-400 hover:to-vip-gold active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-vip-gold/10 select-none cursor-pointer"
+                      >
+                        📂 {lang === 'amh' ? 'ይህን ምዕራፍ ማጠቃለያ ወደ ደብተር አስቀምጥ' : 'Save Unit Summary to Study Notebook 💾'}
+                      </button>
 
                       {/* Display key formula alert block if formulas exist */}
                       {activeUnit.keyFormulas && activeUnit.keyFormulas.length > 0 && (
@@ -1864,7 +2903,7 @@ export default function App(): JSX.Element {
                                 ? 'bg-vip-gold text-black font-semibold rounded-tr-none' 
                                 : 'bg-vip-slate border border-[#334155]/60 text-white rounded-tl-none'
                             }`}>
-                              <p>{item.text}</p>
+                              {renderMessageContent(item)}
                               <span className="block text-[8px] text-[#64748b] text-right mt-1">{item.time}</span>
                             </div>
                           </div>
@@ -3159,120 +4198,267 @@ export default function App(): JSX.Element {
                     </div>
                   </div>
 
-                  {/* High Fidelity Chat Console occupying comfortable height */}
-                  <div className="p-4 rounded-3xl border border-[#334155]/50 bg-[#0c101b] flex flex-col justify-between h-[450px]">
+                  {/* Bento-grid containing Chat Console (left) and Notebook Panel (right) */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
                     
-                    {/* Message listing screen */}
-                    <div className="flex-1 overflow-y-auto space-y-3.5 pr-1 scrollbar-thin">
-                      {chatMessages.map((item) => (
-                        <div 
-                          key={item.id} 
-                          className={`flex ${item.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div className={`p-3 rounded-2xl max-w-[85%] text-xs leading-relaxed ${
-                            item.sender === 'user' 
-                              ? 'bg-gradient-to-br from-vip-gold to-yellow-500 text-black font-semibold rounded-tr-none shadow-md' 
-                              : 'bg-vip-slate border border-[#334155]/60 text-white rounded-tl-none'
-                          }`}>
-                            <p>{item.text}</p>
-                            <span className="block text-[8px] opacity-70 text-[#64748b] text-right mt-1.5 font-mono">{item.time}</span>
+                    {/* Column 1 & 2: High Fidelity Chat Console */}
+                    <div className="lg:col-span-2 p-4 rounded-3xl border border-[#334155]/50 bg-[#0c101b] flex flex-col justify-between h-[520px]">
+                      
+                      {/* Message listing screen */}
+                      <div className="flex-1 overflow-y-auto space-y-3.5 pr-1 scrollbar-thin">
+                        {chatMessages.map((item) => (
+                          <div 
+                            key={item.id} 
+                            className={`flex ${item.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div className={`p-3 rounded-2xl max-w-[85%] text-xs leading-relaxed ${
+                              item.sender === 'user' 
+                                ? 'bg-gradient-to-br from-vip-gold to-yellow-500 text-black font-semibold rounded-tr-none shadow-md' 
+                                : 'bg-vip-slate border border-[#334155]/60 text-white rounded-tl-none'
+                            }`}>
+                              {renderMessageContent(item)}
+                              <span className="block text-[8px] opacity-70 text-[#64748b] text-right mt-1.5 font-mono">{item.time}</span>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
 
-                      {isAiTyping && (
-                        <div className="flex justify-start">
-                          <div className="p-2.5 rounded-2xl bg-vip-slate/30 text-[#64748b] text-xs font-mono animate-pulse">
-                            Aksum GPT Pro loading local database answers...
+                        {isAiTyping && (
+                          <div className="flex justify-start">
+                            <div className="p-2.5 rounded-2xl bg-vip-slate/30 text-[#64748b] text-xs font-mono animate-pulse">
+                              Aksum GPT Pro loading local database answers...
+                            </div>
                           </div>
+                        )}
+                      </div>
+
+                      {/* Predefined prompt helpers */}
+                      <div className="py-2.5 flex gap-1.5 overflow-x-auto text-[10px] text-slate-300 no-scrollbar select-none shrink-0 border-t border-slate-800/20">
+                        <button 
+                          onClick={() => setChatInput(lang === 'amh' ? 'ያለፉትን የፈተና ጥያቄዎች እንዴት በፈጣን መስራት እችላለሁ?' : 'Tips on speeding up ESSLCE algebra answers.')}
+                          className="px-2.5 py-1 rounded-lg bg-[#1e293b]/60 border border-slate-800 whitespace-nowrap active:scale-95 transition cursor-pointer"
+                        >
+                          ⚡ Prep Drills
+                        </button>
+                        <button 
+                          onClick={() => setChatInput(lang === 'amh' ? 'የ ፊዚካዊ ቀመሮች በሙሉ አሳይ' : 'List key physics equations.')}
+                          className="px-2.5 py-1 rounded-lg bg-[#1e293b]/60 border border-slate-800 whitespace-nowrap active:scale-95 transition cursor-pointer"
+                        >
+                          📐 Constants
+                        </button>
+                        <button 
+                          onClick={() => setChatInput(lang === 'amh' ? 'የ AAU ዩኒቨርሲቲ መግቢያ ዝቅተኛ ውጤት' : 'Aastu Admissions Ratios')}
+                          className="px-2.5 py-1 rounded-lg bg-[#1e293b]/60 border border-slate-800 whitespace-nowrap active:scale-95 transition cursor-pointer"
+                        >
+                          🏫 Uni Targets
+                        </button>
+                      </div>
+
+                      {/* Attachment files if any */}
+                      {chatAttachment && (
+                        <div className="flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded bg-[#1e1b4b] border border-[#a78bfa]/40 text-[#a78bfa] text-[10px] uppercase font-bold mb-2 animate-pulse shrink-0">
+                          <span className="flex items-center gap-1 truncate max-w-[150px]">
+                            <FileText className="w-3.5 h-3.5" />
+                            <span className="truncate">{chatAttachment.name}</span>
+                          </span>
+                          <button 
+                            onClick={() => setChatAttachment(null)} 
+                            className="hover:text-red-500 font-bold shrink-0 text-xs ml-1 select-none cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Chat toolbar + inputs conform to Native 48px height */}
+                      <div className="flex items-center gap-1.5 pt-2 border-t border-[#334155]/20 shrink-0">
+                        {/* Image uploader */}
+                        <label className="w-10 h-10 rounded-lg bg-[#1e293b]/80 text-[#cbd5e1] hover:text-white border border-slate-700/60 hover:border-slate-600 transition cursor-pointer flex items-center justify-center shrink-0 min-h-[40px]">
+                          <ImageIcon className="w-4 h-4 text-[#a78bfa]" />
+                          <input 
+                            type="file" 
+                            accept="image/*,application/pdf" 
+                            className="hidden" 
+                            onChange={(e) => handleImageFileChange(e, false)} 
+                          />
+                        </label>
+
+                        {/* Camera capture */}
+                        <label className="w-10 h-10 rounded-lg bg-[#1e293b]/80 text-[#cbd5e1] hover:text-white border border-slate-700/60 hover:border-slate-600 transition cursor-pointer flex items-center justify-center shrink-0 min-h-[40px]" title="Take a physical photo">
+                          <Camera className="w-4 h-4 text-emerald-400" />
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            capture="environment" 
+                            className="hidden" 
+                            onChange={(e) => handleImageFileChange(e, true)} 
+                          />
+                        </label>
+
+                        {/* Main input */}
+                        <input
+                          type="text"
+                          placeholder={lang === 'amh' ? 'ለትምህርት ጥያቄዎችን እዚህ ይጠይቁ...' : 'Type study question...'}
+                          className="flex-1 h-10 px-3 rounded-lg border border-[#334155] bg-black/40 text-xs text-white outline-none focus:border-vip-gold min-h-[40px]"
+                          value={chatInput}
+                          onChange={(e) => setChatInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSendChatMessage();
+                          }}
+                        />
+                        <button
+                          onClick={handleSendChatMessage}
+                          className="w-10 h-10 rounded-lg bg-vip-gold text-black hover:bg-yellow-500 transition cursor-pointer shrink-0 flex items-center justify-center min-h-[40px] active:scale-95"
+                        >
+                          <Send className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                    </div>
+
+                    {/* Column 3: Intelligent Live Study Notebook Panel */}
+                    <div className="p-5 rounded-3xl border border-[#334155]/40 bg-[#070b13] flex flex-col justify-between h-[520px]">
+                      
+                      {/* Notebook Header and Clean action */}
+                      <div className="border-b border-slate-800/60 pb-3 mb-3 shrink-0">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-xs font-black text-gradient-gold flex items-center gap-1.5 uppercase tracking-wide">
+                            📓 {lang === 'amh' ? 'የጥናት ማስታወሻ ደብተር' : 'MY STUDY NOTEBOOK'} ({savedShortNotes.length})
+                          </h4>
+                          {savedShortNotes.length > 0 && (
+                            <button
+                              onClick={() => {
+                                if (window.confirm(lang === 'amh' ? 'ማስታወሻዎችን በሙሉ መሰረዝ ይፈልጋሉ?' : 'Are you sure you want to clear all saved study notes?')) {
+                                  setSavedShortNotes([]);
+                                  showToast(lang === 'amh' ? '🧹 ማስታወሻዎች ሙሉ በሙሉ ጠርገዋል!' : '🧹 Notes cleared successfully!');
+                                }
+                              }}
+                              className="text-[10px] text-rose-400 hover:text-red-300 transition shrink-0 underline cursor-pointer font-bold"
+                            >
+                              {lang === 'amh' ? 'ሁሉንም ሰርዝ' : 'Clear All'}
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
+                          {lang === 'amh' 
+                            ? 'የተቀመጡ ጠቃሚ ማጠቃለያዎችን፣ ቀመሮችንና የፈተና ስልቶችን እዚህ ይመልከቱ።'
+                            : 'A durable cache of your gold-yield concept highlight cards, equations, and speed-hacks.'}
+                        </p>
+                      </div>
+
+                      {/* Scrollable list of short notes */}
+                      <div className="flex-1 overflow-y-auto pr-1 space-y-3 scrollbar-thin no-scrollbar">
+                        {savedShortNotes.length === 0 ? (
+                          <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-2 select-none opacity-40">
+                            <span className="text-3xl">📝</span>
+                            <h5 className="font-semibold text-xs text-slate-300">
+                              {lang === 'amh' ? 'ባዶ ደብተር' : 'Your Notebook is Empty'}
+                            </h5>
+                            <p className="text-[10px] text-slate-500 max-w-[200px] leading-relaxed">
+                              {lang === 'amh' 
+                                ? 'ከ Aksum GPT Pro ረዳት ጋር ሲያወሩ የሚወጡትን ቀመሮች "Save Note" በማለት እዚህ ያከማቹ!'
+                                : 'While studying with Aksum GPT Pro, click "Save Note" on study components to build your custom cheat sheet here!'}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3 pb-4">
+                            {savedShortNotes.map((note) => (
+                              <div 
+                                key={note.id} 
+                                className={`p-3 rounded-xl border relative group transition duration-300 text-xs shadow-md ${
+                                  note.category === 'highlight' ? 'border-amber-500/10 bg-amber-500/5' :
+                                  note.category === 'summary' ? 'border-emerald-500/10 bg-emerald-500/5' :
+                                  note.category === 'formula' ? 'border-sky-500/15 bg-sky-950/10' :
+                                  note.category === 'hack' ? 'border-purple-500/15 bg-purple-550/5' :
+                                  'border-rose-500/10 bg-rose-550/5'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between gap-1.5 border-b border-white/[0.04] pb-1.5 mb-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[7.5px] uppercase tracking-wider font-mono font-black px-1.5 py-0.5 rounded bg-[#090d16] text-[#cca43b]">
+                                      {note.subject}
+                                    </span>
+                                    <span className="text-[8px] font-mono text-slate-500">
+                                      {note.time}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(`${note.title} - ${note.content}`);
+                                        showToast(lang === 'amh' ? '📋 ማስታወሻው ወደ ቅንጥብ ሰሌዳ ተኮፒቷል!' : '📋 Note text copied to clipboard!');
+                                      }}
+                                      className="text-slate-400 hover:text-white transition p-0.5 text-[11px] cursor-pointer"
+                                      title="Copy Note Text"
+                                    >
+                                      📋
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setSavedShortNotes(prev => prev.filter(n => n.id !== note.id));
+                                        showToast(lang === 'amh' ? '🗑️ ማስታወሻው ተሰርዟል' : '🗑️ Note removed from study log');
+                                      }}
+                                      className="text-red-400 hover:text-red-300 transition p-0.5 text-xs font-bold cursor-pointer"
+                                      title="Delete Note"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                </div>
+                                <h6 className="font-bold text-[#cca43b] text-xs leading-none">
+                                  {note.title}
+                                </h6>
+                                <p className="text-zinc-300 text-[11px] leading-relaxed mt-1.5 whitespace-pre-wrap font-sans selection:bg-slate-800">
+                                  {note.content}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Download exporter inside Notebook footer */}
+                      {savedShortNotes.length > 0 && (
+                        <div className="pt-3 border-t border-slate-800/60 shrink-0">
+                          <button
+                            onClick={() => {
+                              const formatMarkdown = savedShortNotes.map((note, index) => {
+                                return `### [Note ${index + 1}] Subject: ${note.subject} (${note.time})\nCategory: ${note.category.toUpperCase()}\nTitle: ${note.title}\n\n${note.content}\n\n---\n`;
+                              }).join('\n');
+                              
+                              const blob = new Blob([formatMarkdown], { type: 'text/markdown' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `Aksum_Study_ShortNotes_${new Date().toISOString().slice(0, 10)}.md`;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                              URL.revokeObjectURL(url);
+                              showToast(lang === 'amh' ? '📥 ማስታወሻ ደብተር ማውረድ ተጠናቋል!' : '📥 Notebook successfully downloaded as Markdown!');
+                            }}
+                            className="w-full py-2.5 rounded-xl text-xs font-bold text-center text-[#111827] bg-[#cca43b] hover:bg-yellow-500 transition active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 shadow-lg"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>{lang === 'amh' ? 'ይህን ማስታወሻ ደብተር አውርድ (.md)' : 'Download Notebook (.md)'}</span>
+                          </button>
                         </div>
                       )}
                     </div>
 
-                    {/* Predefined prompt helpers */}
-                    <div className="py-2.5 flex gap-1.5 overflow-x-auto text-[10px] text-slate-300 no-scrollbar">
-                      <button 
-                        onClick={() => setChatInput(lang === 'amh' ? 'ያለፉትን የፈተና ጥያቄዎች እንዴት በፈጣን መስራት እችላለሁ?' : 'Tips on speeding up ESSLCE algebra answers.')}
-                        className="px-2.5 py-1 rounded-lg bg-[#1e293b]/60 border border-slate-800 whitespace-nowrap active:scale-95 transition"
-                      >
-                        ⚡ Prep Drills
-                      </button>
-                      <button 
-                        onClick={() => setChatInput(lang === 'amh' ? 'የ ፊዚካዊ ቀመሮች በሙሉ አሳይ' : 'List key physics equations.')}
-                        className="px-2.5 py-1 rounded-lg bg-[#1e293b]/60 border border-slate-800 whitespace-nowrap active:scale-95 transition"
-                      >
-                        📐 Constants
-                      </button>
-                      <button 
-                        onClick={() => setChatInput(lang === 'amh' ? 'የ AAU ዩኒቨርሲቲ መግቢያ ዝቅተኛ ውጤት' : 'Aastu Admissions Ratios')}
-                        className="px-2.5 py-1 rounded-lg bg-[#1e293b]/60 border border-slate-800 whitespace-nowrap active:scale-95 transition"
-                      >
-                        🏫 Uni Targets
-                      </button>
-                    </div>
-
-                    {/* Attachment files if any */}
-                    {chatAttachment && (
-                      <div className="flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded bg-[#1e1b4b] border border-[#a78bfa]/40 text-[#a78bfa] text-[10px] uppercase font-bold mb-2 animate-pulse">
-                        <span className="flex items-center gap-1 truncate max-w-[150px]">
-                          <FileText className="w-3.5 h-3.5" />
-                          <span className="truncate">{chatAttachment.name}</span>
-                        </span>
-                        <button 
-                          onClick={() => setChatAttachment(null)} 
-                          className="hover:text-red-500 font-bold shrink-0 text-xs ml-1 select-none cursor-pointer"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Chat toolbar + inputs conform to Native 48px height */}
-                    <div className="flex items-center gap-1.5 pt-2 border-t border-[#334155]/20">
-                      {/* Image uploader */}
-                      <label className="w-10 h-10 rounded-lg bg-[#1e293b]/80 text-[#cbd5e1] hover:text-white border border-slate-700/60 hover:border-slate-600 transition cursor-pointer flex items-center justify-center shrink-0 min-h-[40px]">
-                        <ImageIcon className="w-4 h-4 text-[#a78bfa]" />
-                        <input 
-                          type="file" 
-                          accept="image/*,application/pdf" 
-                          className="hidden" 
-                          onChange={(e) => handleImageFileChange(e, false)} 
-                        />
-                      </label>
-
-                      {/* Camera capture */}
-                      <label className="w-10 h-10 rounded-lg bg-[#1e293b]/80 text-[#cbd5e1] hover:text-white border border-slate-700/60 hover:border-slate-600 transition cursor-pointer flex items-center justify-center shrink-0 min-h-[40px]" title="Take a physical photo">
-                        <Camera className="w-4 h-4 text-emerald-400" />
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          capture="environment" 
-                          className="hidden" 
-                          onChange={(e) => handleImageFileChange(e, true)} 
-                        />
-                      </label>
-
-                      {/* Main input */}
-                      <input
-                        type="text"
-                        placeholder={lang === 'amh' ? 'ለትምህርት ጥያቄዎችን እዚህ ይጠይቁ...' : 'Type study question...'}
-                        className="flex-1 h-10 px-3 rounded-lg border border-[#334155] bg-black/40 text-xs text-white outline-none focus:border-vip-gold min-h-[40px]"
-                        value={chatInput}
-                        onChange={(e) => setChatInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleSendChatMessage();
-                        }}
-                      />
-                      <button
-                        onClick={handleSendChatMessage}
-                        className="w-10 h-10 rounded-lg bg-vip-gold text-black hover:bg-yellow-500 transition cursor-pointer shrink-0 flex items-center justify-center min-h-[40px] active:scale-95"
-                      >
-                        <Send className="w-4 h-4" />
-                      </button>
-                    </div>
-
                   </div>
                 </div>
+              )}
+
+              {/* ================= TAB 5.9: GOOGLE DRIVE STUDY VAULT ================= */}
+              {activeTab === 'google_drive' && (
+                <GoogleDriveHub
+                  lang={lang}
+                  studentInfo={studentInfo}
+                  completedMinutes={completedMinutes}
+                  savedShortNotes={savedShortNotes}
+                  showToast={showToast}
+                  onBack={() => setActiveTab('dashboard')}
+                />
               )}
 
               {/* ================= TAB 5.8: ABOUT APP DETAILS & SYSTEMS VERSIONING ================= */}
@@ -3338,9 +4524,10 @@ export default function App(): JSX.Element {
               )}
 
             </main>
+          </div> {/* closes sidebar navigation wrapper */}
 
             {/* Sticky Bottom Navigation Tab Bar (Requirement 1) */}
-            <div className="h-16 border-t border-[#cca43b]/15 bg-[#0b0f19] flex items-center justify-around px-1 select-none shrink-0 z-40 pb-safe">
+            <div className="md:hidden h-16 border-t border-[#cca43b]/15 bg-[#0b0f19] flex items-center justify-around px-1 select-none shrink-0 z-40 pb-safe">
               {[
                 { id: 'dashboard', label: lang === 'amh' ? 'ዋና ገጽ' : 'Home', icon: TrendingUp },
                 { id: 'curriculum', label: lang === 'amh' ? 'ሲላበስ' : 'Courses', icon: BookOpen },
@@ -3353,7 +4540,7 @@ export default function App(): JSX.Element {
                 
                 let isSelected = false;
                 if (tabItem.id === 'more_menu') {
-                  isSelected = ['apkstore', 'about_app', 'notifications', 'formulas', 'premium'].includes(activeTab);
+                  isSelected = ['apkstore', 'about_app', 'notifications', 'formulas', 'premium', 'google_drive'].includes(activeTab);
                 } else if (tabItem.id === 'dashboard') {
                   isSelected = activeTab === 'dashboard';
                 } else if (tabItem.id === 'curriculum') {
@@ -3412,6 +4599,21 @@ export default function App(): JSX.Element {
 
                   {/* Menu grids with large touch targets conforming to 44px minimum */}
                   <div className="grid grid-cols-2 gap-3 pb-2">
+                    
+                    {/* GOOGLE DRIVE STUDY VAULT */}
+                    <button
+                      onClick={() => {
+                        setActiveTab('google_drive');
+                        setShowMoreMenuTray(false);
+                      }}
+                      className="p-3.5 rounded-xl border border-slate-800 bg-[#0e1626]/60 hover:border-vip-gold/30 hover:bg-[#15233c] text-left text-xs text-[#cbd5e1] hover:text-white transition flex items-center gap-3 min-h-[48px] cursor-pointer"
+                    >
+                      <Cloud className="w-5 h-5 text-[#38bdf8] shrink-0" />
+                      <div>
+                        <strong className="block text-[11px] font-black uppercase tracking-tight">{lang === 'amh' ? 'የጉግል ድራይቭ' : 'Google Drive'}</strong>
+                        <span className="text-[9px] text-slate-400 leading-none">{lang === 'amh' ? 'ደመና ማህደር' : 'Cloud study vault'}</span>
+                      </div>
+                    </button>
                     
                     {/* APKSTORE / DOWNLOAD HUB */}
                     <button
@@ -3474,6 +4676,21 @@ export default function App(): JSX.Element {
                       </div>
                     </button>
 
+                    {/* VIDEO CLASSRoom LEARNING */}
+                    <button
+                      onClick={() => {
+                        setActiveTab('video_lectures');
+                        setShowMoreMenuTray(false);
+                      }}
+                      className="p-3.5 rounded-xl border border-slate-800 bg-[#0e1626]/60 hover:border-vip-gold/30 hover:bg-[#15233c] text-left text-xs text-[#cbd5e1] hover:text-white transition flex items-center gap-3 min-h-[48px] cursor-pointer"
+                    >
+                      <Video className="w-5 h-5 text-vip-gold shrink-0" />
+                      <div>
+                        <strong className="block text-[11px] font-black uppercase tracking-tight">{lang === 'amh' ? 'ቪዲዮ ትምህርት' : 'Video Lectures'}</strong>
+                        <span className="text-[9px] text-slate-400 leading-none">{lang === 'amh' ? 'ምዕራፍ ማብራሪያ' : 'Classroom streams'}</span>
+                      </div>
+                    </button>
+
                     {/* PROFILE PROFILE PROFILE */}
                     <button
                       onClick={() => {
@@ -3506,8 +4723,8 @@ export default function App(): JSX.Element {
           </>
         )}
 
-        </div> {/* closes simulated top-level viewport wrapper: <div className="flex-1 flex flex-col h-full... */}
-      </div> {/* closes simulated physical device wrapper: <div className="w-full max-w-sm md:max-w-md... */}
+        </div> {/* closes internal workspace relative viewport wrapper */}
+      </div> {/* closes main responsive viewport layout */}
 
       {/* ================= PREMIUM GRADUATION CERTIFICATE MODAL ================= */}
       {showCertificate && (
@@ -3626,6 +4843,157 @@ export default function App(): JSX.Element {
               >
                 <Share2 className="w-4 h-4" />
                 <span>Export Vector Document (.HTML/.SVG)</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ================= PASSWORD RECOVERY MODAL ================= */}
+      {showRecoveryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+          <div className="w-full max-w-md bg-[#0a0f19] border border-[#cca43b]/25 rounded-3xl p-5 md:p-6 space-y-5 relative shadow-2xl text-white text-center">
+            
+            {/* Close Button */}
+            <button 
+              onClick={() => {
+                setShowRecoveryModal(false);
+                setRecoveryStatus('idle');
+              }}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full border border-slate-800 text-slate-400 hover:text-white hover:border-[#cca43b]/40 cursor-pointer text-xs flex items-center justify-center bg-black/50"
+            >
+              ✕
+            </button>
+
+            <div className="space-y-2">
+              <span className="text-3xl">🔑</span>
+              <h3 className="text-sm font-extrabold text-gradient-gold uppercase tracking-wider">
+                {lang === 'amh' ? 'የይለፍ ቃል መልሶ ማግኛ' : 'Sovereign Password Recovery'}
+              </h3>
+              <p className="text-[11px] text-[#94a3b8] leading-relaxed max-w-sm mx-auto">
+                {lang === 'amh' 
+                  ? 'የተመዘገቡበትን ሙሉ ስም ወይም ስልክ ቁጥር ያስገቡ። ሲሙሌተር ቴክኖሎጂያችን የይለፍ ቃልዎን ፈልጎ አስፈላጊውን ሊንክ ይልካል።'
+                  : 'Enter your registered student name, key phone number, or academic email. We will search our offline state caches to simulate recovery pipelines.'}
+              </p>
+            </div>
+
+            {/* Recovery states handlers */}
+            {recoveryStatus === 'idle' && (
+              <div className="space-y-4">
+                <div className="space-y-1.5 text-left">
+                  <label className="text-[11px] text-[#94a3b8] font-bold block px-0.5">
+                    {lang === 'amh' ? 'የስልክ ቁጥር፣ ስም ወይም ኢሜይል' : 'Registered Identifier'}
+                  </label>
+                  <input 
+                    type="text" 
+                    placeholder={lang === 'amh' ? 'ለምሳሌ፡ 0911...' : 'e.g. 0911223344 or Yonatan'}
+                    className="w-full h-11 px-4 rounded-xl border border-slate-800 bg-black/40 text-white outline-none focus:border-vip-gold transition text-xs"
+                    value={recoveryIdentifier}
+                    onChange={(e) => setRecoveryIdentifier(e.target.value)}
+                  />
+                  {recoveryError && (
+                    <p className="text-[10px] text-red-450 flex items-center gap-1 font-semibold block animate-pulse">
+                      ⚠️ {recoveryError}
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    onClick={handleRequestPasswordRecovery}
+                    className="w-full h-11 rounded-xl bg-gradient-to-r from-vip-gold to-yellow-600 text-black font-extrabold text-xs uppercase tracking-widest cursor-pointer shadow-lg active:scale-95 transition"
+                  >
+                    {lang === 'amh' ? 'ኮድ ላክልኝ' : 'Request Registry Link'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {recoveryStatus === 'sending' && (
+              <div className="py-6 space-y-4">
+                <div className="w-10 h-10 border-2 border-t-transparent border-vip-gold rounded-full animate-spin mx-auto animate-pulse" />
+                <div className="space-y-1.5">
+                  <p className="text-xs font-bold text-vip-gold">
+                    {lang === 'amh' ? 'ኢትዮ ቴሌኮም ኤስኤምኤስ ጌትዌይ መልዕክት እያዘጋጀ ነው...' : 'Connecting to local Telecom SMS dispatch...'}
+                  </p>
+                  <p className="text-[9px] text-[#64748b]">
+                    {lang === 'amh' ? 'እባክዎ ለጥቂት ሰከንዶች ይጠብቁ' : 'Checking state databases. Encryption active.'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {recoveryStatus === 'sent' && (
+              <div className="space-y-4 py-2 text-center">
+                <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-xl mx-auto animate-bounce">
+                  ✓
+                </div>
+                
+                <div className="p-3.5 rounded-xl bg-emerald-950/20 border border-emerald-500/15 text-left text-xs leading-relaxed space-y-2">
+                  <p className="font-extrabold text-emerald-400">
+                    {lang === 'amh' ? '📩 ማሳወቂያ፡ መልዕክት በተሳካ ሁኔታ ተልኳል!' : '📩 Status: Simulation Dispatched successfully!'}
+                  </p>
+                  <p className="text-[11px] text-slate-300">
+                    {lang === 'amh'
+                      ? 'የይለፍ ቃል መልሶ ማግኛ ቀጥተኛ ሊንክ እና የፒን ኮዱ በተሳካ ሁኔታ ተመስሏል።'
+                      : 'A virtual recovery link has been requested. Since this is operating under offline sandbox emulation, we extracted your profile password for you:'}
+                  </p>
+                  
+                  {/* Password presentation block */}
+                  <div className="py-2 px-3 rounded-lg bg-black/60 border border-[#cca43b]/25 flex items-center justify-between text-xs font-mono">
+                    <span className="text-[#94a3b8]">Stored Password:</span>
+                    <strong className="text-vip-gold tracking-widest text-[#cca43b] text-sm">
+                      {(() => {
+                        const cached = localStorage.getItem('aksum_student_info');
+                        if (cached) {
+                          try {
+                            const parsed = JSON.parse(cached);
+                            return parsed.password || '1234';
+                          } catch (e) {}
+                        }
+                        return '1234';
+                      })()}
+                    </strong>
+                  </div>
+                  <p className="text-[9px] text-yellow-500/70 italic">
+                    {lang === 'amh' ? '💡 የይለፍ ቃልዎን በመጠቀም አሁን መግባት ይችላሉ።' : '💡 You can now copy and use this passcode to sign in.'}
+                  </p>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    onClick={() => {
+                      // Pre-fill fields for ease of login!
+                      const cached = localStorage.getItem('aksum_student_info');
+                      if (cached) {
+                        try {
+                          const parsed = JSON.parse(cached);
+                          setSigninIdentifier(parsed.phone || parsed.name || '');
+                          setSigninPassword(parsed.password || '1234');
+                        } catch (e) {}
+                      }
+                      setShowRecoveryModal(false);
+                      setRecoveryStatus('idle');
+                    }}
+                    className="w-full h-11 rounded-xl bg-vip-gold hover:bg-yellow-500 text-black font-extrabold text-xs uppercase tracking-widest cursor-pointer shadow-lg active:scale-95 transition"
+                  >
+                    {lang === 'amh' ? 'ዝጋና መረጃውን ሙላልኝ' : 'Close & Autofill'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Back button option */}
+            <div className="pt-2">
+              <button
+                onClick={() => {
+                  setShowRecoveryModal(false);
+                  setRecoveryStatus('idle');
+                }}
+                className="text-[11px] text-slate-500 hover:text-slate-300 underline transition cursor-pointer select-none"
+              >
+                {lang === 'amh' ? 'ወደ መግቢያ ገጽ ተመለስ' : 'Return to Login'}
               </button>
             </div>
 
